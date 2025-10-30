@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/push_changes.ps1">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/push_changes.ps1" />
+              <option name="updatedContent" value="Set-Location &quot;D:\Lab3_car_site&quot;&#10;git rm --cached commit_changes.bat commit_changes.ps1&#10;git add .&#10;git commit -m &quot;Add car data and repository improvements&quot;&#10;git pull origin main --rebase&#10;git push origin main&#10;Write-Host &quot;Done&quot; -ForegroundColor Green&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
