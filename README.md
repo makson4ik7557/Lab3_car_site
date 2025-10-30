@@ -37,6 +37,10 @@
 - `create(**kwargs)` - створити новий автомобіль
 - `get_available_cars()` - отримати доступні автомобілі
 - `get_cars_by_make(make)` - пошук за маркою
+- `get_premium_cars(min_price)` - автомобілі вище вказаної ціни
+- `get_cars_by_year_range(start, end)` - пошук за діапазоном років
+- `get_most_expensive()` - найдорожчий автомобіль
+- `get_cheapest()` - найдешевший автомобіль
 
 Аналогічно реалізовані:
 - `CustomerRepository` - робота з клієнтами
@@ -44,6 +48,15 @@
 - `SaleRepository` - робота з продажами
 
 Бізнес-логіка взаємодіє тільки з репозиторіями, не використовуючи прямі ORM-запити.
+
+### Дані в базі
+
+Проект містить реальні дані про автомобілі преміум-класу:
+- BMW (M5 Competition, X7 M60i, 3 Series, iX)
+- Porsche (911 Turbo S, Cayenne, Taycan, Macan)
+- Mercedes-Benz (AMG GT, S-Class)
+
+Для наповнення бази використовується скрипт `populate_db.py`.
 
 ## Переваги
 

@@ -8,47 +8,54 @@ from repo_practice.services.repo_service import repository_service
 
 
 def demonstrate_repository():
-    print("Патерн Репозиторій\n")
+    print("=" * 50)
+    print("Демонстрація патерну Repository")
+    print("=" * 50)
 
-    try:
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
+    print("\n--- Автомобілі BMW ---")
+    bmw_cars = repository_service.car_repository.get_cars_by_make('BMW')
+    for car in bmw_cars:
+        print(f"{car.model} ({car.year}) - ${car.price}")
 
-        print("АВТОМОБІЛІ")
+    print("\n--- Автомобілі Porsche ---")
+    porsche_cars = repository_service.car_repository.get_cars_by_make('Porsche')
+    for car in porsche_cars:
+        print(f"{car.model} ({car.year}) - ${car.price}")
 
-        new_car = repository_service.create_car(
-            make="Toyota",
-            model="Camry",
-            year=2023,
-            price=25000.00,
-            in_stock=True
-        )
-        print(f"Створено новий автомобіль: {new_car}")
+    print("\n--- Преміум автомобілі (>$80000) ---")
+    premium = repository_service.car_repository.get_premium_cars()
+    for car in premium:
+        print(f"{car.make} {car.model} - ${car.price}")
 
-        all_cars = repository_service.get_all_cars()
-        print(f"Всього автомобілів у БД: {len(all_cars)}")
-        for car in all_cars[:5]:
-            print(f"  - {car.make} {car.model} {car.year} - ${car.price}")
+    print("\n--- Найдорожчий автомобіль ---")
+    expensive = repository_service.car_repository.get_most_expensive()
+    if expensive:
+        print(f"{expensive.make} {expensive.model} - ${expensive.price}")
 
-        print("\nКЛІЄНТИ")
+    print("\n--- Найдешевший автомобіль ---")
+    cheap = repository_service.car_repository.get_cheapest()
+    if cheap:
+        print(f"{cheap.make} {cheap.model} - ${cheap.price}")
 
-        new_customer = repository_service.create_customer(
-            first_name="Іван",
-            last_name="Петренко",
-            email="ivan@example.com",
-            phone="+380501234567"
-        )
-        print(f"Створено нового клієнта: {new_customer}")
+    print("\n--- Всі клієнти ---")
+    customers = repository_service.get_all_customers()
+    print(f"Кількість клієнтів: {len(customers)}")
+    for customer in customers:
+        print(f"{customer.first_name} {customer.last_name} - {customer.email}")
 
-        all_customers = repository_service.get_all_customers()
-        print(f"Всього клієнтів у БД: {len(all_customers)}")
+    print("\n--- Всі працівники ---")
+    employees = repository_service.get_all_employees()
+    print(f"Кількість працівників: {len(employees)}")
+    for emp in employees:
+        print(f"{emp.first_name} {emp.last_name} - {emp.position}")
 
-        print("\nПРАЦІВНИКИ")
+    print("\n" + "=" * 50)
+    print("Демонстрація завершена")
+    print("=" * 50)
 
-        new_employee = repository_service.create_employee(
-            first_name="Марія",
-            last_name="Іваненко",
+
+if __name__ == '__main__':
+    demonstrate_repository()
             position="Менеджер з продажів",
             hire_date="2023-01-15"
         )
