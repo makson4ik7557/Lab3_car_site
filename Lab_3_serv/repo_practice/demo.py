@@ -56,19 +56,7 @@ def demonstrate_repository():
 
 if __name__ == '__main__':
     demonstrate_repository()
-            position="Менеджер з продажів",
-            hire_date="2023-01-15"
-        )
-        print(f"Створено нового працівника: {new_employee}")
 
-        all_employees = repository_service.get_all_employees()
-        print(f"Всього працівників у БД: {len(all_employees)}")
-
-        print("\nПОШУК ПО ID")
-        car_by_id = repository_service.get_car_by_id(1)
-        if car_by_id:
-            print(f"Знайдено автомобіль по ID 1: {car_by_id}")
-        else:
             print("Автомобіль з ID 1 не знайдено")
 
         print("\nДОСТУПНІ АВТОМОБІЛІ")
