@@ -24,6 +24,21 @@ class RepositoryService:
     def get_available_cars(self):
         return self.car_repository.get_available_cars()
 
+    def get_cars_by_make(self, make):
+        return self.car_repository.get_cars_by_make(make)
+
+    def get_premium_cars(self, min_price=80000):
+        return self.car_repository.get_premium_cars(min_price)
+
+    def get_cars_by_year_range(self, start_year, end_year):
+        return self.car_repository.get_cars_by_year_range(start_year, end_year)
+
+    def get_most_expensive_car(self):
+        return self.car_repository.get_most_expensive()
+
+    def get_cheapest_car(self):
+        return self.car_repository.get_cheapest()
+
     # Customer methods
     def get_all_customers(self):
         return self.customer_repository.get_all()
@@ -33,6 +48,9 @@ class RepositoryService:
 
     def create_customer(self, **kwargs):
         return self.customer_repository.create(**kwargs)
+
+    def get_customer_by_email(self, email):
+        return self.customer_repository.get_by_email(email)
 
     # Employee methods
     def get_all_employees(self):
@@ -44,6 +62,9 @@ class RepositoryService:
     def create_employee(self, **kwargs):
         return self.employee_repository.create(**kwargs)
 
+    def get_employees_by_position(self, position):
+        return self.employee_repository.get_by_position(position)
+
     # Sale methods
     def get_all_sales(self):
         return self.sale_repository.get_all()
@@ -53,6 +74,9 @@ class RepositoryService:
 
     def create_sale(self, **kwargs):
         return self.sale_repository.create(**kwargs)
+
+    def get_sales_by_customer(self, customer_id):
+        return self.sale_repository.get_sales_by_customer(customer_id)
 
 
 # Глобальний екземпляр для використання
