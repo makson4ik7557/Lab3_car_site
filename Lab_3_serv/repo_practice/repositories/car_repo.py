@@ -4,6 +4,16 @@ from .base_repo import BaseRepository
 
 
 class CarRepository(BaseRepository[Car]):
+    def get(self, id: Optional[int] = None, **filters) -> Optional[Car] | List[Car]:
+        if id is not None:
+            try:
+                return Car.objects.get(id=id)
+            except Car.DoesNotExist:
+                return None
+        if filters:
+            return list(Car.objects.filter(**filters))
+        return list(Car.objects.all())
+
     def get_all(self) -> List[Car]:
         return list(Car.objects.all())
 
@@ -15,6 +25,9 @@ class CarRepository(BaseRepository[Car]):
 
     def create(self, **kwargs) -> Car:
         return Car.objects.create(**kwargs)
+
+    def add(self, **kwargs) -> Car:
+        return self.create(**kwargs)
 
     def get_available_cars(self) -> List[Car]:
         return list(Car.objects.filter(in_stock=True))

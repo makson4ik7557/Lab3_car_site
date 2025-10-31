@@ -12,37 +12,37 @@ from repo_practice.services.repo_service import repository_service
 
 def demonstrate():
     print("Автомобілі BMW:")
-    bmw_cars = repository_service.get_cars_by_make('BMW')
+    bmw_cars = repository_service.cars.get(make__iexact='BMW')
     for car in bmw_cars:
         print(f"{car.model} ({car.year}) - ${car.price}")
 
     print("\nАвтомобілі Porsche:")
-    porsche_cars = repository_service.get_cars_by_make('Porsche')
+    porsche_cars = repository_service.cars.get(make__iexact='Porsche')
     for car in porsche_cars:
         print(f"{car.model} ({car.year}) - ${car.price}")
 
     print("\nПреміум автомобілі:")
-    premium = repository_service.get_premium_cars()
+    premium = repository_service.cars.get(price__gte=80000)
     for car in premium:
         print(f"{car.make} {car.model} - ${car.price}")
 
     print("\nНайдорожчий автомобіль:")
-    expensive = repository_service.get_most_expensive_car()
+    expensive = repository_service.cars.get_most_expensive()
     if expensive:
         print(f"{expensive.make} {expensive.model} - ${expensive.price}")
 
     print("\nНайдешевший автомобіль:")
-    cheapest = repository_service.get_cheapest_car()
+    cheapest = repository_service.cars.get_cheapest()
     if cheapest:
         print(f"{cheapest.make} {cheapest.model} - ${cheapest.price}")
 
     print("\nКлієнти:")
-    customers = repository_service.get_all_customers()
+    customers = repository_service.customers.get()
     for customer in customers:
         print(f"{customer.first_name} {customer.last_name} - {customer.email}")
 
     print("\nПрацівники:")
-    employees = repository_service.get_all_employees()
+    employees = repository_service.employees.get()
     for emp in employees:
         print(f"{emp.first_name} {emp.last_name} - {emp.position}")
 
