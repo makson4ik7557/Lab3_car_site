@@ -1,7 +1,7 @@
 from typing import List, Optional
+from django.db.models import Count, Sum, Avg, Max, Min
 from ..models import Sale
 from .base_repo import BaseRepository
-
 
 class SaleRepository(BaseRepository[Sale]):
     def get(self, id: Optional[int] = None, **filters) -> Optional[Sale] | List[Sale]:
@@ -31,3 +31,18 @@ class SaleRepository(BaseRepository[Sale]):
 
     def get_sales_by_customer(self, customer_id: int) -> List[Sale]:
         return list(Sale.objects.filter(customer_id=customer_id).select_related('car', 'employee'))
+
+    def get_sales_report(self) -> List[dict]:
+        """Звіт: статистика продажів за марками та моделями машин"""
+        return list(
+            Sale.objects
+            .values('car__make', 'car__model')
+            .annotate(
+                total_sales=Count('id'),
+                total_revenue=Sum('sale_price'),
+                average_price=Avg('sale_price'),
+                max_price=Max('sale_price'),
+                min_price=Min('sale_price')
+            )
+            .order_by('-total_sales')
+        )
