@@ -29,6 +29,24 @@ class SaleRepository(BaseRepository[Sale]):
     def add(self, **kwargs) -> Sale:
         return self.create(**kwargs)
 
+    def update(self, id: int, **kwargs) -> Optional[Sale]:
+        try:
+            sale = Sale.objects.get(id=id)
+            for key, value in kwargs.items():
+                setattr(sale, key, value)
+            sale.save()
+            return sale
+        except Sale.DoesNotExist:
+            return None
+
+    def delete(self, id: int) -> bool:
+        try:
+            sale = Sale.objects.get(id=id)
+            sale.delete()
+            return True
+        except Sale.DoesNotExist:
+            return False
+
     def get_sales_by_customer(self, customer_id: int) -> List[Sale]:
         return list(Sale.objects.filter(customer_id=customer_id).select_related('car', 'employee'))
 

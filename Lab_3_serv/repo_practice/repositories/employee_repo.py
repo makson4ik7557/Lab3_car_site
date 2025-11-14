@@ -29,5 +29,23 @@ class EmployeeRepository(BaseRepository[Employee]):
     def add(self, **kwargs) -> Employee:
         return self.create(**kwargs)
 
+    def update(self, id: int, **kwargs) -> Optional[Employee]:
+        try:
+            employee = Employee.objects.get(id=id)
+            for key, value in kwargs.items():
+                setattr(employee, key, value)
+            employee.save()
+            return employee
+        except Employee.DoesNotExist:
+            return None
+
+    def delete(self, id: int) -> bool:
+        try:
+            employee = Employee.objects.get(id=id)
+            employee.delete()
+            return True
+        except Employee.DoesNotExist:
+            return False
+
     def get_by_position(self, position: str) -> List[Employee]:
         return list(Employee.objects.filter(position__iexact=position))

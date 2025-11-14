@@ -17,3 +17,11 @@ class BaseRepository(Generic[T], ABC):
     @abstractmethod
     def create(self, **kwargs) -> T:
         pass
+
+    @abstractmethod
+    def update(self, id: int, **kwargs) -> Optional[T]:
+        pass
+
+    @abstractmethod
+    def delete(self, id: int) -> bool:
+        pass

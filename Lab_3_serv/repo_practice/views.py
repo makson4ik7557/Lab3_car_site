@@ -24,13 +24,19 @@ class BaseAuthenticatedViewSet(viewsets.ModelViewSet):
         return self.repo_attribute.get_by_id(pk)
 
     def perform_create(self, serializer):
-        serializer.save()
+        validated_data = serializer.validated_data
+        instance = self.repo_attribute.create(**validated_data)
+        serializer.instance = instance
 
     def perform_update(self, serializer):
-        serializer.save()
+        pk = self.kwargs.get('pk')
+        validated_data = serializer.validated_data
+        instance = self.repo_attribute.update(pk, **validated_data)
+        serializer.instance = instance
 
     def perform_destroy(self, instance):
-        instance.delete()
+        pk = self.kwargs.get('pk')
+        self.repo_attribute.delete(pk)
 
 class CarViewSet(BaseAuthenticatedViewSet):
     serializer_class = CarSerializer
