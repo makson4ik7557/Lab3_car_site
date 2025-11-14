@@ -29,6 +29,24 @@ class CarRepository(BaseRepository[Car]):
     def add(self, **kwargs) -> Car:
         return self.create(**kwargs)
 
+    def update(self, id: int, **kwargs) -> Optional[Car]:
+        try:
+            car = Car.objects.get(id=id)
+            for key, value in kwargs.items():
+                setattr(car, key, value)
+            car.save()
+            return car
+        except Car.DoesNotExist:
+            return None
+
+    def delete(self, id: int) -> bool:
+        try:
+            car = Car.objects.get(id=id)
+            car.delete()
+            return True
+        except Car.DoesNotExist:
+            return False
+
     def get_available_cars(self) -> List[Car]:
         return list(Car.objects.filter(in_stock=True))
 

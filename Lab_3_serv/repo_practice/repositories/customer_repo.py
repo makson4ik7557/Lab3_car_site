@@ -29,6 +29,24 @@ class CustomerRepository(BaseRepository[Customer]):
     def add(self, **kwargs) -> Customer:
         return self.create(**kwargs)
 
+    def update(self, id: int, **kwargs) -> Optional[Customer]:
+        try:
+            customer = Customer.objects.get(id=id)
+            for key, value in kwargs.items():
+                setattr(customer, key, value)
+            customer.save()
+            return customer
+        except Customer.DoesNotExist:
+            return None
+
+    def delete(self, id: int) -> bool:
+        try:
+            customer = Customer.objects.get(id=id)
+            customer.delete()
+            return True
+        except Customer.DoesNotExist:
+            return False
+
     def get_by_email(self, email: str) -> Optional[Customer]:
         try:
             return Customer.objects.get(email=email)
