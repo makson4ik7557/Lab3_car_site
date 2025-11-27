@@ -98,17 +98,15 @@ def car_delete(request, car_id):
     return redirect('car_list')
 
 
+# OPTION 1: Always use a service account (default NetworkHelper credentials) for API calls.
+# This simplifies development but is not secure for production. Replace with token/session auth later.
+
 def car_api_list(request):
-    # In production, you'd want to use proper authentication
-    username = request.user.username if request.user.is_authenticated else None
-    password = None  # You'd need to handle this properly in production
-
-    network_helper = NetworkHelper(username=username, password=password)
-
-    if not request.user.is_authenticated:
-        network_helper = NetworkHelper()
-
+    network_helper = NetworkHelper()  # uses default admin credentials
     cars = network_helper.get_list()
+
+    if not cars:
+        messages.warning(request, 'No cars returned from API or API unreachable.')
 
     context = {
         'cars': cars,
@@ -120,15 +118,12 @@ def car_api_list(request):
 
 @require_http_methods(["POST"])
 def car_api_delete(request, car_id):
-    username = request.user.username if request.user.is_authenticated else None
-    network_helper = NetworkHelper(username=username, password=None)
-
+    network_helper = NetworkHelper()  # uses default admin credentials
     success = network_helper.delete_item(car_id)
 
     if success:
-        messages.success(request, f'Car deleted successfully via API!')
+        messages.success(request, 'Car deleted successfully via API!')
     else:
-        messages.error(request, f'Failed to delete car via API. Make sure you are authenticated.')
+        messages.error(request, 'Failed to delete car via API (check authentication or ID).')
 
     return redirect('car_api_list')
-
