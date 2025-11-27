@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class NetworkHelper:
     def __init__(self, base_url: str = "http://127.0.0.1:8000/api/cars/",
-                 username: str = None, password: str = None):
+                 username: str = "admin", password: str = "gigachad123"):
         self.base_url = base_url.rstrip('/')
         self.username = username
         self.password = password
