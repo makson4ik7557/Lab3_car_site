@@ -1,0 +1,81 @@
+{% extends "car_templates/base.html" %}
+
+{% block title %}{{ page_title }} - Car Sale Site{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'car_list' %}" class="btn btn-secondary">← Back to List</a>
+</div>
+
+<div class="card">
+    <h1>{{ page_title }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="{{ form.make.id_for_label }}">{{ form.make.label }}</label>
+            {{ form.make }}
+            {% if form.make.errors %}
+                <div style="color: red; margin-top: 0.5rem;">
+                    {{ form.make.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.model.id_for_label }}">{{ form.model.label }}</label>
+            {{ form.model }}
+            {% if form.model.errors %}
+                <div style="color: red; margin-top: 0.5rem;">
+                    {{ form.model.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>
+            {{ form.year }}
+            {% if form.year.errors %}
+                <div style="color: red; margin-top: 0.5rem;">
+                    {{ form.year.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
+            {{ form.price }}
+            {% if form.price.errors %}
+                <div style="color: red; margin-top: 0.5rem;">
+                    {{ form.price.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-wrapper">
+                {{ form.in_stock }}
+                <label for="{{ form.in_stock.id_for_label }}" style="margin: 0;">{{ form.in_stock.label }}</label>
+            </div>
+            {% if form.in_stock.errors %}
+                <div style="color: red; margin-top: 0.5rem;">
+                    {{ form.in_stock.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+        <div style="color: red; margin-bottom: 1rem;">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-success">{{ action }} Car</button>
+            <a href="{% url 'car_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

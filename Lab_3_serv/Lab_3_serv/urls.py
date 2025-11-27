@@ -12,4 +12,5 @@ router.register(r'sales', SaleViewSet, basename='sale')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('', include('car_templates.urls')),  # Include car_templates URLs
 ]

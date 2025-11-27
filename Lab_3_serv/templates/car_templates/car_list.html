@@ -1,0 +1,60 @@
+{% extends "car_templates/base.html" %}
+
+{% block title %}{{ page_title }} - Car Sale Site{% endblock %}
+
+{% block content %}
+<div class="flex-between">
+    <h1>{{ page_title }}</h1>
+    <a href="{% url 'car_add' %}" class="btn btn-success">Add New Car</a>
+</div>
+
+<p>Browse our complete inventory of cars. Click on any car to view details.</p>
+
+{% if cars %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Make</th>
+            <th>Model</th>
+            <th>Year</th>
+            <th>Price</th>
+            <th>In Stock</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for car in cars %}
+        <tr>
+            <td>{{ car.id }}</td>
+            <td>{{ car.make }}</td>
+            <td>{{ car.model }}</td>
+            <td>{{ car.year }}</td>
+            <td>${{ car.price }}</td>
+            <td>
+                {% if car.in_stock %}
+                    <span style="color: green;">✓ Yes</span>
+                {% else %}
+                    <span style="color: red;">✗ No</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'car_detail' car.id %}" class="btn" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p style="margin-top: 1rem; color: #6c757d;">
+    Total cars: <strong>{{ cars|length }}</strong>
+</p>
+{% else %}
+<div class="card text-center" style="padding: 3rem;">
+    <h3>No cars available</h3>
+    <p>Start by adding some cars to the inventory.</p>
+    <a href="{% url 'car_add' %}" class="btn btn-success mt-3">Add Your First Car</a>
+</div>
+{% endif %}
+{% endblock %}
+

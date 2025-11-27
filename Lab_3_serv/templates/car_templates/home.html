@@ -1,0 +1,50 @@
+{% extends "car_templates/base.html" %}
+
+{% block title %}Home - Car Sale Site{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1>Welcome to Car Sale Site</h1>
+    <p style="font-size: 1.2rem; margin: 2rem 0;">Your one-stop shop for quality cars</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <div class="card">
+            <h3>🚗 Browse Cars</h3>
+            <p>View our complete inventory of cars using our template-based interface.</p>
+            <a href="{% url 'car_list' %}" class="btn" style="margin-top: 1rem;">View Inventory</a>
+        </div>
+
+        <div class="card">
+            <h3>➕ Add New Car</h3>
+            <p>Add a new car to the inventory using our easy-to-use form.</p>
+            <a href="{% url 'car_add' %}" class="btn btn-success" style="margin-top: 1rem;">Add Car</a>
+        </div>
+
+        <div class="card">
+            <h3>🔌 API Demo</h3>
+            <p>View cars fetched from REST API using the requests library.</p>
+            <a href="{% url 'car_api_list' %}" class="btn btn-secondary" style="margin-top: 1rem;">API Demo</a>
+        </div>
+
+        <div class="card">
+            <h3>⚙️ Admin Panel</h3>
+            <p>Access the Django admin panel to manage all data.</p>
+            <a href="/admin/" class="btn btn-secondary" style="margin-top: 1rem;">Admin</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 3rem; padding: 2rem; background-color: #f8f9fa; border-radius: 8px;">
+        <h2>About This Project</h2>
+        <p>This is a Django-based car sale website demonstrating:</p>
+        <ul style="text-align: left; max-width: 600px; margin: 1rem auto;">
+            <li>Repository design pattern for data access</li>
+            <li>REST API with Django REST Framework</li>
+            <li>Template-based views with Django templates</li>
+            <li>CRUD operations (Create, Read, Update, Delete)</li>
+            <li>External API integration using requests library</li>
+            <li>Django Forms for data validation</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
