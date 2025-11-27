@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'repo_practice',
     'rest_framework',
+    'car_templates',
 ]
 
 MIDDLEWARE = [
@@ -147,5 +148,3 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S.%fZ',  # ISO 8601 format
     'DATE_FORMAT': '%Y-%m-%d',
 }
-
-

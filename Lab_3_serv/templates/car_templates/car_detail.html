@@ -1,0 +1,77 @@
+{% extends "car_templates/base.html" %}
+
+{% block title %}{{ page_title }} - Car Sale Site{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-3">
+    <div>
+        <a href="{% url 'car_list' %}" class="btn btn-secondary">← Back to List</a>
+    </div>
+    <div>
+        <a href="{% url 'car_edit' car.id %}" class="btn">Edit Car</a>
+    </div>
+</div>
+
+<div class="card">
+    <h1>{{ car.make }} {{ car.model }}</h1>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <div>
+            <h3>Basic Information</h3>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="font-weight: bold;">ID:</td>
+                    <td>{{ car.id }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">Make:</td>
+                    <td>{{ car.make }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">Model:</td>
+                    <td>{{ car.model }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">Year:</td>
+                    <td>{{ car.year }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div>
+            <h3>Pricing & Availability</h3>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="font-weight: bold;">Price:</td>
+                    <td style="font-size: 1.5rem; color: #28a745;">${{ car.price }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">In Stock:</td>
+                    <td>
+                        {% if car.in_stock %}
+                            <span style="color: green; font-weight: bold;">✓ Available</span>
+                        {% else %}
+                            <span style="color: red; font-weight: bold;">✗ Not Available</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">Added:</td>
+                    <td>{{ car.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem; border-left: 4px solid #dc3545;">
+    <h3>Delete Car</h3>
+    <p>This action cannot be undone. The car will be permanently removed from the inventory.</p>
+
+    <form method="post" action="{% url 'car_delete' car.id %}" onsubmit="return confirm('Are you sure you want to delete {{ car.make }} {{ car.model }}?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete This Car</button>
+    </form>
+</div>
+{% endblock %}
+
