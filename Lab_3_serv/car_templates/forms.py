@@ -3,7 +3,6 @@ from repo_practice.models import Car
 
 
 class CarForm(forms.ModelForm):
-    """Form for adding and editing Car objects"""
 
     class Meta:
         model = Car

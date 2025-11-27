@@ -6,22 +6,14 @@ from .forms import CarForm
 from .NetworkHelper import NetworkHelper
 
 
-# Initialize repository service
 repo_service = RepositoryService()
 
 
 def home(request):
-    """Home page with navigation links"""
     return render(request, 'car_templates/home.html')
 
 
-# ========== TEMPLATE-BASED VIEWS (Using Repository Pattern) ==========
-
 def car_list(request):
-    """
-    Display list of all cars with links to detail pages.
-    Uses repository pattern to fetch data directly from DB.
-    """
     cars = repo_service.cars.get_all()
     context = {
         'cars': cars,
@@ -31,12 +23,6 @@ def car_list(request):
 
 
 def car_detail(request, car_id):
-    """
-    Display details of a specific car with delete option.
-
-    Args:
-        car_id: ID of the car to display
-    """
     car = repo_service.cars.get_by_id(car_id)
     if not car:
         messages.error(request, f'Car with ID {car_id} not found.')
@@ -51,15 +37,9 @@ def car_detail(request, car_id):
 
 @require_http_methods(["GET", "POST"])
 def car_add(request):
-    """
-    Add a new car using Django forms.
-    GET: Display empty form
-    POST: Process form and create new car
-    """
     if request.method == 'POST':
         form = CarForm(request.POST)
         if form.is_valid():
-            # Use repository to create the car
             car_data = form.cleaned_data
             car = repo_service.cars.create(**car_data)
             messages.success(request, f'Car "{car.make} {car.model}" added successfully!')
@@ -79,14 +59,6 @@ def car_add(request):
 
 @require_http_methods(["GET", "POST"])
 def car_edit(request, car_id):
-    """
-    Edit an existing car using Django forms.
-    GET: Display form with current car data
-    POST: Process form and update car
-
-    Args:
-        car_id: ID of the car to edit
-    """
     car = repo_service.cars.get_by_id(car_id)
     if not car:
         messages.error(request, f'Car with ID {car_id} not found.')
@@ -95,7 +67,6 @@ def car_edit(request, car_id):
     if request.method == 'POST':
         form = CarForm(request.POST, instance=car)
         if form.is_valid():
-            # Use repository to update the car
             car_data = form.cleaned_data
             updated_car = repo_service.cars.update(car_id, **car_data)
             messages.success(request, f'Car "{updated_car.make} {updated_car.model}" updated successfully!')
@@ -116,13 +87,6 @@ def car_edit(request, car_id):
 
 @require_http_methods(["POST"])
 def car_delete(request, car_id):
-    """
-    Delete a car by ID.
-    Only accepts POST requests for safety.
-
-    Args:
-        car_id: ID of the car to delete
-    """
     car = repo_service.cars.get_by_id(car_id)
     if car:
         car_info = f"{car.make} {car.model}"
@@ -134,26 +98,14 @@ def car_delete(request, car_id):
     return redirect('car_list')
 
 
-# ========== API-BASED VIEWS (Using REST API with requests library) ==========
-
 def car_api_list(request):
-    """
-    Display list of cars fetched from REST API.
-    Each car has a delete button that also uses the API.
-    Demonstrates working with external APIs using requests library.
-    """
-    # Get credentials from session or use defaults
     # In production, you'd want to use proper authentication
     username = request.user.username if request.user.is_authenticated else None
     password = None  # You'd need to handle this properly in production
 
-    # For demo purposes, you might want to hardcode credentials or pass them differently
-    # This is just to demonstrate the NetworkHelper usage
     network_helper = NetworkHelper(username=username, password=password)
 
-    # If user is not authenticated, try without auth (will fail if API requires auth)
     if not request.user.is_authenticated:
-        # For demo, we'll create a helper without auth
         network_helper = NetworkHelper()
 
     cars = network_helper.get_list()
@@ -168,13 +120,6 @@ def car_api_list(request):
 
 @require_http_methods(["POST"])
 def car_api_delete(request, car_id):
-    """
-    Delete a car via REST API.
-    Uses NetworkHelper to make DELETE request to API.
-
-    Args:
-        car_id: ID of the car to delete
-    """
     username = request.user.username if request.user.is_authenticated else None
     network_helper = NetworkHelper(username=username, password=None)
 
