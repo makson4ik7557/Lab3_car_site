@@ -17,7 +17,7 @@
             <label for="{{ form.make.id_for_label }}">{{ form.make.label }}</label>
             {{ form.make }}
             {% if form.make.errors %}
-                <div style="color: red; margin-top: 0.5rem;">
+                <div class="form-error">
                     {{ form.make.errors }}
                 </div>
             {% endif %}
@@ -27,7 +27,7 @@
             <label for="{{ form.model.id_for_label }}">{{ form.model.label }}</label>
             {{ form.model }}
             {% if form.model.errors %}
-                <div style="color: red; margin-top: 0.5rem;">
+                <div class="form-error">
                     {{ form.model.errors }}
                 </div>
             {% endif %}
@@ -37,7 +37,7 @@
             <label for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>
             {{ form.year }}
             {% if form.year.errors %}
-                <div style="color: red; margin-top: 0.5rem;">
+                <div class="form-error">
                     {{ form.year.errors }}
                 </div>
             {% endif %}
@@ -47,7 +47,7 @@
             <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
             {{ form.price }}
             {% if form.price.errors %}
-                <div style="color: red; margin-top: 0.5rem;">
+                <div class="form-error">
                     {{ form.price.errors }}
                 </div>
             {% endif %}
@@ -56,22 +56,22 @@
         <div class="form-group">
             <div class="checkbox-wrapper">
                 {{ form.in_stock }}
-                <label for="{{ form.in_stock.id_for_label }}" style="margin: 0;">{{ form.in_stock.label }}</label>
+                <label for="{{ form.in_stock.id_for_label }}" class="checkbox-label-inline">{{ form.in_stock.label }}</label>
             </div>
             {% if form.in_stock.errors %}
-                <div style="color: red; margin-top: 0.5rem;">
+                <div class="form-error">
                     {{ form.in_stock.errors }}
                 </div>
             {% endif %}
         </div>
 
         {% if form.non_field_errors %}
-        <div style="color: red; margin-bottom: 1rem;">
+        <div class="form-errors">
             {{ form.non_field_errors }}
         </div>
         {% endif %}
 
-        <div style="display: flex; gap: 1rem;">
+        <div class="form-actions">
             <button type="submit" class="btn btn-success">{{ action }} Car</button>
             <a href="{% url 'car_list' %}" class="btn btn-secondary">Cancel</a>
         </div>

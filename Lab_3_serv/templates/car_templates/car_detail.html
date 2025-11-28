@@ -15,24 +15,24 @@
 <div class="card">
     <h1>{{ car.make }} {{ car.model }}</h1>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 2rem;">
+    <div class="car-detail-grid">
         <div>
             <h3>Basic Information</h3>
-            <table style="width: 100%;">
+            <table class="car-detail-table">
                 <tr>
-                    <td style="font-weight: bold;">ID:</td>
+                    <td>ID:</td>
                     <td>{{ car.id }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">Make:</td>
+                    <td>Make:</td>
                     <td>{{ car.make }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">Model:</td>
+                    <td>Model:</td>
                     <td>{{ car.model }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">Year:</td>
+                    <td>Year:</td>
                     <td>{{ car.year }}</td>
                 </tr>
             </table>
@@ -40,23 +40,23 @@
 
         <div>
             <h3>Pricing & Availability</h3>
-            <table style="width: 100%;">
+            <table class="car-detail-table">
                 <tr>
-                    <td style="font-weight: bold;">Price:</td>
-                    <td style="font-size: 1.5rem; color: #28a745;">${{ car.price }}</td>
+                    <td>Price:</td>
+                    <td class="price-highlight">${{ car.price }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">In Stock:</td>
+                    <td>In Stock:</td>
                     <td>
                         {% if car.in_stock %}
-                            <span style="color: green; font-weight: bold;">✓ Available</span>
+                            <span class="stock-status available">✓ Available</span>
                         {% else %}
-                            <span style="color: red; font-weight: bold;">✗ Not Available</span>
+                            <span class="stock-status unavailable">✗ Not Available</span>
                         {% endif %}
                     </td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">Added:</td>
+                    <td>Added:</td>
                     <td>{{ car.created_at|date:"Y-m-d H:i" }}</td>
                 </tr>
             </table>
@@ -64,7 +64,7 @@
     </div>
 </div>
 
-<div class="card" style="margin-top: 2rem; border-left: 4px solid #dc3545;">
+<div class="card delete-card">
     <h3>Delete Car</h3>
     <p>This action cannot be undone. The car will be permanently removed from the inventory.</p>
 
