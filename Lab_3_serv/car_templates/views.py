@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from repo_practice.services.repo_service import RepositoryService
-from .forms import CarForm
+from .forms import CarForm, CustomLoginForm
 from .NetworkHelper import NetworkHelper
 
 
@@ -127,3 +129,52 @@ def car_api_delete(request, car_id):
         messages.error(request, 'Failed to delete car via API (check authentication or ID).')
 
     return redirect('car_api_list')
+
+
+# Authentication Views
+def user_login(request):
+    """
+    Відображає форму логіну та обробляє автентифікацію користувача
+    """
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = CustomLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            remember_me = request.POST.get('remember')
+
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+
+                # Налаштування сесії залежно від "запам'ятати мене"
+                if remember_me:
+                    # Зберігати сесію на 30 днів
+                    request.session.set_expiry(30 * 24 * 60 * 60)
+                else:
+                    # Видалити сесію при закритті браузера
+                    request.session.set_expiry(0)
+
+                messages.success(request, f'Ласкаво просимо, {user.username}!')
+                next_url = request.GET.get('next', 'home')
+                return redirect(next_url)
+            else:
+                messages.error(request, 'Неправильне ім\'я користувача або пароль.')
+        else:
+            messages.error(request, 'Будь ласка, виправте помилки у формі.')
+    else:
+        form = CustomLoginForm()
+
+    return render(request, 'car_templates/login.html', {'form': form})
+
+
+def user_logout(request):
+    """
+    Виходить з системи та перенаправляє на сторінку логіну
+    """
+    logout(request)
+    messages.success(request, 'Ви успішно вийшли з системи.')
+    return redirect('login')

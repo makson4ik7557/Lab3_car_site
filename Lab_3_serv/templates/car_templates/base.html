@@ -17,6 +17,14 @@
                 <li><a href="{% url 'car_add' %}">New Vehicle</a></li>
                 <li><a href="{% url 'car_api_list' %}">API</a></li>
                 <li><a href="/admin/">Administration</a></li>
+                {% if user.is_authenticated %}
+                    <li class="user-menu">
+                        <span>Привіт, {{ user.username }}!</span>
+                        <a href="{% url 'logout' %}" class="logout-btn">Вихід</a>
+                    </li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">Вхід</a></li>
+                {% endif %}
             </ul>
         </div>
     </nav>
@@ -43,6 +51,53 @@
             <p>&copy; 2025 AutoHub. Vehicle Management Platform. All rights reserved.</p>
         </div>
     </footer>
+
+    <style>
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-menu span {
+        color: #333;
+        font-weight: 500;
+    }
+
+    .logout-btn {
+        background-color: #dc3545;
+        color: white !important;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+        text-decoration: none;
+    }
+
+    nav ul li:last-child {
+        margin-left: auto;
+    }
+
+    @media (max-width: 768px) {
+        .user-menu {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        nav ul {
+            flex-direction: column;
+        }
+
+        nav ul li:last-child {
+            margin-left: 0;
+        }
+    }
+    </style>
 </body>
 </html>
 

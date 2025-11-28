@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from repo_practice.models import Car
 
 
@@ -21,4 +22,31 @@ class CarForm(forms.ModelForm):
             'price': 'Price ($)',
             'in_stock': 'In Stock',
         }
+
+
+class CustomLoginForm(AuthenticationForm):
+    """
+    Проста форма логіну
+    """
+    username = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введіть логін',
+        })
+    )
+    password = forms.CharField(
+        label="Пароль",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введіть пароль',
+        })
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].label = 'Логін'
+        self.fields['password'].label = 'Пароль'
+
 
