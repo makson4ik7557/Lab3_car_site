@@ -7,7 +7,7 @@
     <a href="{% url 'car_list' %}" class="btn btn-secondary">← Back to Regular List</a>
 </div>
 
-<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #007bff;">
+<div class="card api-info-card">
     <h2>API Demo</h2>
     <p>This page demonstrates fetching data from the REST API using the <code>requests</code> library.</p>
     <p>The data is retrieved from: <code>http://127.0.0.1:8000/api/cars/</code></p>
@@ -38,15 +38,15 @@
             <td>${{ car.price }}</td>
             <td>
                 {% if car.in_stock %}
-                    <span style="color: green;">✓ Yes</span>
+                    <span class="stock-status available">✓ Yes</span>
                 {% else %}
-                    <span style="color: red;">✗ No</span>
+                    <span class="stock-status unavailable">✗ No</span>
                 {% endif %}
             </td>
             <td>
-                <form method="post" action="{% url 'car_api_delete' car.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ car.make }} {{ car.model }} via API?');">
+                <form method="post" action="{% url 'car_api_delete' car.id %}" class="api-delete-btn" onsubmit="return confirm('Are you sure you want to delete {{ car.make }} {{ car.model }} via API?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">Delete (API)</button>
+                    <button type="submit" class="btn btn-danger btn-small">Delete (API)</button>
                 </form>
             </td>
         </tr>
@@ -54,11 +54,11 @@
     </tbody>
 </table>
 
-<p style="margin-top: 1rem; color: #6c757d;">
+<p class="car-count">
     Total cars fetched via API: <strong>{{ cars|length }}</strong>
 </p>
 
-<div class="card" style="margin-top: 2rem; background-color: #fff3cd; border-left: 4px solid #ffc107;">
+<div class="card api-how-it-works">
     <h3>How It Works</h3>
     <p>This page uses the <code>NetworkHelper</code> class which:</p>
     <ul>
@@ -67,16 +67,16 @@
         <li>Displays the data in this template</li>
         <li>Uses DELETE requests to remove items via the API</li>
     </ul>
-    <p style="margin-top: 1rem;">
+    <p class="mt-3">
         <strong>Note:</strong> The delete buttons use the REST API's DELETE endpoint.
     </p>
 </div>
 {% else %}
-<div class="card text-center" style="padding: 3rem;">
+<div class="card text-center empty-inventory">
     <h3>No cars available via API</h3>
     <p>Either the API is not accessible or there are no cars in the database.</p>
     <p>Make sure:</p>
-    <ul style="text-align: left; max-width: 500px; margin: 1rem auto;">
+    <ul class="api-note-list">
         <li>The Django server is running</li>
         <li>You have created some cars in the database</li>
         <li>The API endpoint is accessible at <code>http://127.0.0.1:8000/api/cars/</code></li>
