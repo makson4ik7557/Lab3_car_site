@@ -16,6 +16,9 @@
                 <li><a href="{% url 'car_list' %}">Inventory</a></li>
                 <li><a href="{% url 'car_add' %}">New Vehicle</a></li>
                 <li><a href="{% url 'car_api_list' %}">API</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'dealer_dashboard' %}">Dealer</a></li>
+                {% endif %}
                 <li><a href="/admin/">Administration</a></li>
                 {% if user.is_authenticated %}
                     <li class="user-menu">

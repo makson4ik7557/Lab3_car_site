@@ -1,4 +1,5 @@
 from django.urls import path
+from django.conf import settings
 from . import views
 
 urlpatterns = [
@@ -13,5 +14,18 @@ urlpatterns = [
     # Authentication URLs
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
+    # Dealer URLs
+    path('dealer/', views.dealer_dashboard, name='dealer_dashboard'),
+    path('dealer/buy/<int:car_id>/', views.buy_car, name='buy_car'),
+    path('dealer/modify/<int:car_id>/', views.modify_car, name='modify_car'),
+    path('dealer/sell/<int:car_id>/', views.sell_car, name='sell_car'),
+    path('dealer/transactions/', views.transaction_history, name='transaction_history'),
 ]
+
+# Add test URL for 404 page preview (only in DEBUG mode)
+if settings.DEBUG:
+    urlpatterns += [
+        path('test-404/', views.custom_404, name='test_404'),
+    ]
+
 

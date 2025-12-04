@@ -1,0 +1,58 @@
+{% extends 'car_templates/base.html' %}
+{% load static %}
+
+{% block title %}Modify Car | AutoHub{% endblock %}
+
+{% block content %}
+<h1>Modify {{ car.make }} {{ car.model }}</h1>
+
+<div class="card info-card">
+    <h3>Car Details</h3>
+    <p><strong>Make:</strong> {{ car.make }}</p>
+    <p><strong>Model:</strong> {{ car.model }}</p>
+    <p><strong>Year:</strong> {{ car.year }}</p>
+    <p><strong>Current Price:</strong> ${{ car.price }}</p>
+</div>
+
+<div class="card balance-card">
+    <h3>Your Balance: ${{ dealer_profile.balance }}</h3>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="modification_cost">Modification Cost:</label>
+        <input type="number" step="0.01" min="1" name="modification_cost" id="modification_cost" required>
+        <small>How much will this modification cost you?</small>
+    </div>
+
+    <div class="form-group">
+        <label for="price_increase">Price Increase:</label>
+        <input type="number" step="0.01" min="1" name="price_increase" id="price_increase" required>
+        <small>How much will the car's value increase by?</small>
+    </div>
+
+    <div class="form-group">
+        <label for="modification_description">Modification Description:</label>
+        <textarea name="modification_description" id="modification_description" rows="3" placeholder="e.g., New paint job, engine upgrade, etc."></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-success">Apply Modification</button>
+        <a href="{% url 'dealer_dashboard' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<div class="card warning-card">
+    <h3>How Modifications Work:</h3>
+    <ul>
+        <li>You pay the modification cost from your balance</li>
+        <li>The car's selling price increases by the price increase amount</li>
+        <li>This allows you to improve cars and sell them for more profit</li>
+        <li>Example: Spend $500 on modifications, increase price by $1500 = $1000 profit when sold</li>
+    </ul>
+</div>
+
+{% endblock %}
+
