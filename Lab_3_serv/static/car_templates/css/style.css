@@ -384,9 +384,51 @@ footer p {
 }
 
 .delete-card {
-    margin-top: 2rem;
-    border-left: 4px solid #dc3545;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 15px;
+    border-radius: 8px;
 }
+
+/* 404 Error Page Styles */
+.error-page-simple {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.error-page-simple h1 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.error-page-simple h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.error-page-simple p {
+    margin-bottom: 2rem;
+    color: #6b7280;
+}
+
+.error-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.error-links a {
+    color: #3b82f6;
+    text-decoration: underline;
+    font-size: 1rem;
+}
+
+.error-links a:hover {
+    color: #2563eb;
+}
+
 
 /* Form styles */
 .form-error {
@@ -459,3 +501,57 @@ footer p {
     max-width: 500px;
     margin: 1rem auto;
 }
+
+/* Dealer Dashboard Styles */
+.balance-card {
+    background: #e7f3ff;
+    border-left: 4px solid #007bff;
+    margin-bottom: 2rem;
+}
+
+.info-card {
+    margin-bottom: 2rem;
+}
+
+.warning-card {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    margin-top: 2rem;
+}
+
+.section-heading {
+    margin-top: 2rem;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.transaction-type-buy {
+    color: red;
+}
+
+.transaction-type-sell {
+    color: green;
+}
+
+.transaction-type-modify {
+    color: orange;
+}
+
+.transaction-amount-negative {
+    color: red;
+}
+
+.transaction-amount-positive {
+    color: green;
+}
+
+.transaction-type-bold {
+    font-weight: bold;
+}
+
+.link-spacing {
+    margin-top: 1rem;
+}
+

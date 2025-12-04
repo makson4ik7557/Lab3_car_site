@@ -14,3 +14,7 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('', include('car_templates.urls')),  # Include car_templates URLs
 ]
+
+# Custom error handlers
+handler404 = 'car_templates.views.custom_404'
+

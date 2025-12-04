@@ -1,11 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.db import transaction as db_transaction
 from repo_practice.services.repo_service import RepositoryService
+from repo_practice.models import DealerProfile, Transaction, Car
 from .forms import CarForm, CustomLoginForm
 from .NetworkHelper import NetworkHelper
+from decimal import Decimal
 
 
 repo_service = RepositoryService()
@@ -178,3 +181,187 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'Ви успішно вийшли з системи.')
     return redirect('login')
+
+
+# Dealer Views
+@login_required
+def dealer_dashboard(request):
+    """
+    Dealer dashboard showing balance and transaction history
+    """
+    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+
+    # Get dealer's owned cars
+    owned_cars = Car.objects.filter(owner=request.user)
+
+    # Get recent transactions
+    transactions = Transaction.objects.filter(dealer=request.user)[:20]
+
+    # Get available cars to buy (not owned by this dealer)
+    available_cars = Car.objects.filter(in_stock=True).exclude(owner=request.user)[:10]
+
+    context = {
+        'dealer_profile': dealer_profile,
+        'owned_cars': owned_cars,
+        'transactions': transactions,
+        'available_cars': available_cars,
+        'page_title': 'Dealer Dashboard'
+    }
+    return render(request, 'car_templates/dealer_dashboard.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def buy_car(request, car_id):
+    """
+    Buy a car from the inventory
+    """
+    car = get_object_or_404(Car, id=car_id)
+    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+
+    # Check if car is already owned by this dealer
+    if car.owner == request.user:
+        messages.error(request, 'You already own this car!')
+        return redirect('dealer_dashboard')
+
+    # Check if dealer has enough balance
+    if dealer_profile.balance < car.price:
+        messages.error(request, f'Insufficient balance! You need ${car.price} but have ${dealer_profile.balance}')
+        return redirect('dealer_dashboard')
+
+    # Perform transaction
+    with db_transaction.atomic():
+        balance_before = dealer_profile.balance
+        dealer_profile.balance -= car.price
+        dealer_profile.save()
+
+        car.owner = request.user
+        car.save()
+
+        # Record transaction
+        Transaction.objects.create(
+            dealer=request.user,
+            car=car,
+            transaction_type='BUY',
+            amount=-car.price,
+            description=f'Purchased {car.make} {car.model} ({car.year})',
+            balance_before=balance_before,
+            balance_after=dealer_profile.balance
+        )
+
+    messages.success(request, f'Successfully purchased {car.make} {car.model} for ${car.price}!')
+    return redirect('dealer_dashboard')
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def modify_car(request, car_id):
+    """
+    Modify a car (costs money to upgrade)
+    """
+    car = get_object_or_404(Car, id=car_id, owner=request.user)
+    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        modification_cost = Decimal(request.POST.get('modification_cost', 0))
+        price_increase = Decimal(request.POST.get('price_increase', 0))
+        modification_desc = request.POST.get('modification_description', 'Car modification')
+
+        if modification_cost <= 0 or price_increase <= 0:
+            messages.error(request, 'Invalid modification cost or price increase!')
+            return redirect('modify_car', car_id=car_id)
+
+        # Check if dealer has enough balance
+        if dealer_profile.balance < modification_cost:
+            messages.error(request, f'Insufficient balance! Modification costs ${modification_cost} but you have ${dealer_profile.balance}')
+            return redirect('modify_car', car_id=car_id)
+
+        # Perform transaction
+        with db_transaction.atomic():
+            balance_before = dealer_profile.balance
+            dealer_profile.balance -= modification_cost
+            dealer_profile.save()
+
+            old_price = car.price
+            car.price += price_increase
+            car.save()
+
+            # Record transaction
+            Transaction.objects.create(
+                dealer=request.user,
+                car=car,
+                transaction_type='MODIFY',
+                amount=-modification_cost,
+                description=f'{modification_desc} - Price increased from ${old_price} to ${car.price}',
+                balance_before=balance_before,
+                balance_after=dealer_profile.balance
+            )
+
+        messages.success(request, f'Successfully modified {car.make} {car.model}! Price increased to ${car.price}')
+        return redirect('dealer_dashboard')
+
+    context = {
+        'car': car,
+        'dealer_profile': dealer_profile,
+        'page_title': f'Modify {car.make} {car.model}'
+    }
+    return render(request, 'car_templates/modify_car.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def sell_car(request, car_id):
+    """
+    Sell a car owned by the dealer
+    """
+    car = get_object_or_404(Car, id=car_id, owner=request.user)
+    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+
+    # Perform transaction
+    with db_transaction.atomic():
+        balance_before = dealer_profile.balance
+        dealer_profile.balance += car.price
+        dealer_profile.save()
+
+        # Record transaction before removing ownership
+        Transaction.objects.create(
+            dealer=request.user,
+            car=car,
+            transaction_type='SELL',
+            amount=car.price,
+            description=f'Sold {car.make} {car.model} ({car.year})',
+            balance_before=balance_before,
+            balance_after=dealer_profile.balance
+        )
+
+        # Remove ownership
+        car.owner = None
+        car.save()
+
+    messages.success(request, f'Successfully sold {car.make} {car.model} for ${car.price}!')
+    return redirect('dealer_dashboard')
+
+
+@login_required
+def transaction_history(request):
+    """
+    View full transaction history
+    """
+    transactions = Transaction.objects.filter(dealer=request.user)
+    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+
+    context = {
+        'transactions': transactions,
+        'dealer_profile': dealer_profile,
+        'page_title': 'Transaction History'
+    }
+    return render(request, 'car_templates/transaction_history.html', context)
+
+
+# Custom Error Handlers
+def custom_404(request, exception=None):
+    """
+    Custom 404 error page handler
+    """
+    return render(request, 'car_templates/404.html', status=404)
+

@@ -1,0 +1,67 @@
+{% extends 'car_templates/base.html' %}
+{% load static %}
+
+{% block title %}Transaction History | AutoHub{% endblock %}
+
+{% block content %}
+<h1>Transaction History</h1>
+
+<div class="card balance-card">
+    <h2>Current Balance: ${{ dealer_profile.balance }}</h2>
+    <p><a href="{% url 'dealer_dashboard' %}">Back to Dashboard</a></p>
+</div>
+
+{% if transactions %}
+<table>
+    <thead>
+        <tr>
+            <th>Date & Time</th>
+            <th>Type</th>
+            <th>Car</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Balance Before</th>
+            <th>Balance After</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction.created_at|date:"Y-m-d H:i:s" }}</td>
+            <td>
+                {% if transaction.transaction_type == 'BUY' %}
+                <span class="transaction-type-buy transaction-type-bold">BUY</span>
+                {% elif transaction.transaction_type == 'SELL' %}
+                <span class="transaction-type-sell transaction-type-bold">SELL</span>
+                {% else %}
+                <span class="transaction-type-modify transaction-type-bold">MODIFY</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if transaction.car %}
+                {{ transaction.car.make }} {{ transaction.car.model }}
+                {% else %}
+                N/A
+                {% endif %}
+            </td>
+            <td>{{ transaction.description }}</td>
+            <td class="{% if transaction.amount < 0 %}transaction-amount-negative{% else %}transaction-amount-positive{% endif %} transaction-type-bold">
+                {% if transaction.amount > 0 %}+{% endif %}${{ transaction.amount }}
+            </td>
+            <td>${{ transaction.balance_before }}</td>
+            <td>${{ transaction.balance_after }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="car-count">Total Transactions: {{ transactions.count }}</p>
+{% else %}
+<div class="empty-inventory">
+    <p>No transactions yet. Start buying and selling cars to build your history!</p>
+    <a href="{% url 'dealer_dashboard' %}" class="btn">Go to Dashboard</a>
+</div>
+{% endif %}
+
+{% endblock %}
+
