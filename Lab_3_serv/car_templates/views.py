@@ -1,11 +1,10 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.db import transaction as db_transaction
 from repo_practice.services.repo_service import RepositoryService
-from repo_practice.models import DealerProfile, Transaction, Car
 from .forms import CarForm, CustomLoginForm
 from .NetworkHelper import NetworkHelper
 from decimal import Decimal
@@ -189,16 +188,17 @@ def dealer_dashboard(request):
     """
     Dealer dashboard showing balance and transaction history
     """
-    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+    dealer_profile, created = repo_service.dealer_profiles.get_or_create_by_user(request.user)
 
     # Get dealer's owned cars
-    owned_cars = Car.objects.filter(owner=request.user)
+    owned_cars = repo_service.cars.get(owner=request.user)
 
     # Get recent transactions
-    transactions = Transaction.objects.filter(dealer=request.user)[:20]
+    transactions = repo_service.transactions.get_dealer_recent_transactions(request.user, limit=20)
 
     # Get available cars to buy (not owned by this dealer)
-    available_cars = Car.objects.filter(in_stock=True).exclude(owner=request.user)[:10]
+    all_available = repo_service.cars.get(in_stock=True)
+    available_cars = [car for car in all_available if car.owner != request.user][:10]
 
     context = {
         'dealer_profile': dealer_profile,
@@ -216,8 +216,12 @@ def buy_car(request, car_id):
     """
     Buy a car from the inventory
     """
-    car = get_object_or_404(Car, id=car_id)
-    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+    car = repo_service.cars.get_by_id(car_id)
+    if not car:
+        messages.error(request, f'Car with ID {car_id} not found.')
+        return redirect('dealer_dashboard')
+
+    dealer_profile, created = repo_service.dealer_profiles.get_or_create_by_user(request.user)
 
     # Check if car is already owned by this dealer
     if car.owner == request.user:
@@ -232,21 +236,22 @@ def buy_car(request, car_id):
     # Perform transaction
     with db_transaction.atomic():
         balance_before = dealer_profile.balance
-        dealer_profile.balance -= car.price
-        dealer_profile.save()
 
-        car.owner = request.user
-        car.save()
+        # Update balance using repository
+        repo_service.dealer_profiles.deduct_from_balance(request.user, car.price)
 
-        # Record transaction
-        Transaction.objects.create(
+        # Update car ownership using repository
+        repo_service.cars.update(car_id, owner=request.user)
+
+        # Record transaction using repository
+        repo_service.transactions.create(
             dealer=request.user,
             car=car,
             transaction_type='BUY',
             amount=-car.price,
             description=f'Purchased {car.make} {car.model} ({car.year})',
             balance_before=balance_before,
-            balance_after=dealer_profile.balance
+            balance_after=dealer_profile.balance - car.price
         )
 
     messages.success(request, f'Successfully purchased {car.make} {car.model} for ${car.price}!')
@@ -259,8 +264,12 @@ def modify_car(request, car_id):
     """
     Modify a car (costs money to upgrade)
     """
-    car = get_object_or_404(Car, id=car_id, owner=request.user)
-    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+    car = repo_service.cars.get_by_id(car_id)
+    if not car or car.owner != request.user:
+        messages.error(request, 'Car not found or you do not own this car.')
+        return redirect('dealer_dashboard')
+
+    dealer_profile, created = repo_service.dealer_profiles.get_or_create_by_user(request.user)
 
     if request.method == 'POST':
         modification_cost = Decimal(request.POST.get('modification_cost', 0))
@@ -279,25 +288,27 @@ def modify_car(request, car_id):
         # Perform transaction
         with db_transaction.atomic():
             balance_before = dealer_profile.balance
-            dealer_profile.balance -= modification_cost
-            dealer_profile.save()
 
+            # Update balance using repository
+            repo_service.dealer_profiles.deduct_from_balance(request.user, modification_cost)
+
+            # Update car price using repository
             old_price = car.price
-            car.price += price_increase
-            car.save()
+            new_price = car.price + price_increase
+            repo_service.cars.update(car_id, price=new_price)
 
-            # Record transaction
-            Transaction.objects.create(
+            # Record transaction using repository
+            repo_service.transactions.create(
                 dealer=request.user,
                 car=car,
                 transaction_type='MODIFY',
                 amount=-modification_cost,
-                description=f'{modification_desc} - Price increased from ${old_price} to ${car.price}',
+                description=f'{modification_desc} - Price increased from ${old_price} to ${new_price}',
                 balance_before=balance_before,
-                balance_after=dealer_profile.balance
+                balance_after=dealer_profile.balance - modification_cost
             )
 
-        messages.success(request, f'Successfully modified {car.make} {car.model}! Price increased to ${car.price}')
+        messages.success(request, f'Successfully modified {car.make} {car.model}! Price increased to ${new_price}')
         return redirect('dealer_dashboard')
 
     context = {
@@ -314,29 +325,33 @@ def sell_car(request, car_id):
     """
     Sell a car owned by the dealer
     """
-    car = get_object_or_404(Car, id=car_id, owner=request.user)
-    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+    car = repo_service.cars.get_by_id(car_id)
+    if not car or car.owner != request.user:
+        messages.error(request, 'Car not found or you do not own this car.')
+        return redirect('dealer_dashboard')
+
+    dealer_profile, created = repo_service.dealer_profiles.get_or_create_by_user(request.user)
 
     # Perform transaction
     with db_transaction.atomic():
         balance_before = dealer_profile.balance
-        dealer_profile.balance += car.price
-        dealer_profile.save()
+
+        # Update balance using repository
+        repo_service.dealer_profiles.add_to_balance(request.user, car.price)
 
         # Record transaction before removing ownership
-        Transaction.objects.create(
+        repo_service.transactions.create(
             dealer=request.user,
             car=car,
             transaction_type='SELL',
             amount=car.price,
             description=f'Sold {car.make} {car.model} ({car.year})',
             balance_before=balance_before,
-            balance_after=dealer_profile.balance
+            balance_after=dealer_profile.balance + car.price
         )
 
-        # Remove ownership
-        car.owner = None
-        car.save()
+        # Remove ownership using repository
+        repo_service.cars.update(car_id, owner=None)
 
     messages.success(request, f'Successfully sold {car.make} {car.model} for ${car.price}!')
     return redirect('dealer_dashboard')
@@ -347,8 +362,8 @@ def transaction_history(request):
     """
     View full transaction history
     """
-    transactions = Transaction.objects.filter(dealer=request.user)
-    dealer_profile, created = DealerProfile.objects.get_or_create(user=request.user)
+    transactions = repo_service.transactions.get_by_dealer(request.user)
+    dealer_profile, created = repo_service.dealer_profiles.get_or_create_by_user(request.user)
 
     context = {
         'transactions': transactions,
