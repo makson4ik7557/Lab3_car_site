@@ -1,4 +1,4 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 
@@ -9,6 +9,9 @@ from .services.repo_service import RepositoryService
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.db import transaction as db_transaction
+from decimal import Decimal
 
 
 class BaseAuthenticatedViewSet(viewsets.ModelViewSet):
@@ -160,3 +163,237 @@ class TransactionViewSet(BaseAuthenticatedViewSet):
             'sell_count': len(self.repo.transactions.get_sell_transactions(request.user)),
             'modify_count': len(self.repo.transactions.get_modify_transactions(request.user)),
         })
+
+
+class DealerViewSet(viewsets.ViewSet):
+    """
+    API для операцій дилера (buy, sell, modify, dashboard)
+    """
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'], url_path='dashboard/(?P<user_id>[^/.]+)')
+    def dashboard(self, request, user_id=None):
+        """
+        GET /api/dealer/dashboard/{user_id}/
+        Отримати дані для dashboard дилера
+        """
+        try:
+            user = User.objects.get(id=user_id)
+            repo = RepositoryService()
+
+            dealer_profile, created = repo.dealer_profiles.get_or_create_by_user(user)
+            owned_cars = repo.cars.get(owner=user)
+            transactions = repo.transactions.get_dealer_recent_transactions(user, limit=20)
+            all_available = repo.cars.get(in_stock=True)
+            available_cars = [car for car in all_available if car.owner != user][:10]
+
+            return Response({
+                'dealer_profile': DealerProfileSerializer(dealer_profile).data,
+                'owned_cars': CarSerializer(owned_cars, many=True).data,
+                'transactions': TransactionSerializer(transactions, many=True).data,
+                'available_cars': CarSerializer(available_cars, many=True).data,
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['post'], url_path='buy')
+    def buy_car(self, request):
+        """
+        POST /api/dealer/buy/
+        Body: {"user_id": 1, "car_id": 5}
+        """
+        user_id = request.data.get('user_id')
+        car_id = request.data.get('car_id')
+
+        if not user_id or not car_id:
+            return Response({'error': 'user_id and car_id required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+            repo = RepositoryService()
+            car = repo.cars.get_by_id(car_id)
+
+            if not car:
+                return Response({'error': 'Car not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            dealer_profile, created = repo.dealer_profiles.get_or_create_by_user(user)
+
+            # Перевірки
+            if car.owner == user:
+                return Response({'error': 'You already own this car!'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if dealer_profile.balance < car.price:
+                return Response({
+                    'error': 'Insufficient balance',
+                    'required': str(car.price),
+                    'balance': str(dealer_profile.balance)
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Виконуємо транзакцію
+            with db_transaction.atomic():
+                balance_before = dealer_profile.balance
+
+                repo.dealer_profiles.deduct_from_balance(user, car.price)
+                repo.cars.update(car_id, owner=user)
+
+                transaction_obj = repo.transactions.create(
+                    dealer=user,
+                    car=car,
+                    transaction_type='BUY',
+                    amount=-car.price,
+                    description=f'Purchased {car.make} {car.model} ({car.year})',
+                    balance_before=balance_before,
+                    balance_after=dealer_profile.balance - car.price
+                )
+
+            return Response({
+                'message': f'Successfully purchased {car.make} {car.model}',
+                'transaction': TransactionSerializer(transaction_obj).data
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='sell')
+    def sell_car(self, request):
+        """
+        POST /api/dealer/sell/
+        Body: {"user_id": 1, "car_id": 5}
+        """
+        user_id = request.data.get('user_id')
+        car_id = request.data.get('car_id')
+
+        if not user_id or not car_id:
+            return Response({'error': 'user_id and car_id required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+            repo = RepositoryService()
+            car = repo.cars.get_by_id(car_id)
+
+            if not car or car.owner != user:
+                return Response({'error': 'Car not found or not owned by you'}, status=status.HTTP_404_NOT_FOUND)
+
+            dealer_profile, created = repo.dealer_profiles.get_or_create_by_user(user)
+
+            # Виконуємо транзакцію
+            with db_transaction.atomic():
+                balance_before = dealer_profile.balance
+
+                repo.dealer_profiles.add_to_balance(user, car.price)
+
+                transaction_obj = repo.transactions.create(
+                    dealer=user,
+                    car=car,
+                    transaction_type='SELL',
+                    amount=car.price,
+                    description=f'Sold {car.make} {car.model} ({car.year})',
+                    balance_before=balance_before,
+                    balance_after=dealer_profile.balance + car.price
+                )
+
+                repo.cars.update(car_id, owner=None)
+
+            return Response({
+                'message': f'Successfully sold {car.make} {car.model}',
+                'transaction': TransactionSerializer(transaction_obj).data
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='modify')
+    def modify_car(self, request):
+        """
+        POST /api/dealer/modify/
+        Body: {
+            "user_id": 1,
+            "car_id": 5,
+            "modification_cost": 500.00,
+            "price_increase": 1000.00,
+            "description": "Engine upgrade"
+        }
+        """
+        user_id = request.data.get('user_id')
+        car_id = request.data.get('car_id')
+        modification_cost = request.data.get('modification_cost')
+        price_increase = request.data.get('price_increase')
+        description = request.data.get('description', 'Car modification')
+
+        if not all([user_id, car_id, modification_cost, price_increase]):
+            return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            modification_cost = Decimal(str(modification_cost))
+            price_increase = Decimal(str(price_increase))
+
+            if modification_cost <= 0 or price_increase <= 0:
+                return Response({'error': 'Invalid amounts'}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = User.objects.get(id=user_id)
+            repo = RepositoryService()
+            car = repo.cars.get_by_id(car_id)
+
+            if not car or car.owner != user:
+                return Response({'error': 'Car not found or not owned by you'}, status=status.HTTP_404_NOT_FOUND)
+
+            dealer_profile, created = repo.dealer_profiles.get_or_create_by_user(user)
+
+            if dealer_profile.balance < modification_cost:
+                return Response({
+                    'error': 'Insufficient balance',
+                    'required': str(modification_cost),
+                    'balance': str(dealer_profile.balance)
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Виконуємо транзакцію
+            with db_transaction.atomic():
+                balance_before = dealer_profile.balance
+                old_price = car.price
+                new_price = car.price + price_increase
+
+                repo.dealer_profiles.deduct_from_balance(user, modification_cost)
+                repo.cars.update(car_id, price=new_price)
+
+                transaction_obj = repo.transactions.create(
+                    dealer=user,
+                    car=car,
+                    transaction_type='MODIFY',
+                    amount=-modification_cost,
+                    description=f'{description} - Price increased from ${old_price} to ${new_price}',
+                    balance_before=balance_before,
+                    balance_after=dealer_profile.balance - modification_cost
+                )
+
+            return Response({
+                'message': f'Successfully modified {car.make} {car.model}',
+                'new_price': str(new_price),
+                'transaction': TransactionSerializer(transaction_obj).data
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='transactions/(?P<user_id>[^/.]+)')
+    def transactions(self, request, user_id=None):
+        """
+        GET /api/dealer/transactions/{user_id}/
+        Отримати всі транзакції дилера
+        """
+        try:
+            user = User.objects.get(id=user_id)
+            repo = RepositoryService()
+            transactions = repo.transactions.get_by_dealer(user)
+
+            return Response({
+                'transactions': TransactionSerializer(transactions, many=True).data
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
