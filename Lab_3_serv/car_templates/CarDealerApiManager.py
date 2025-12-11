@@ -1,17 +1,21 @@
 import requests
 from typing import List, Dict, Optional
 import logging
+from decouple import config
 
 logger = logging.getLogger(__name__)
 
 
-class NetworkHelper:
-    def __init__(self, base_url: str = "http://127.0.0.1:8000/api/cars/",
-                 username: str = "admin", password: str = "gigachad123"):
-        self.base_url = base_url.rstrip('/')
-        self.username = username
-        self.password = password
-        self.auth = (username, password) if username and password else None
+class CarDealerApiManager:
+    def __init__(self, base_url: str = None, username: str = None, password: str = None):
+        # Use environment variables with fallback to default values
+        api_base = config('API_BASE_URL', default='http://127.0.0.1:8000/api')
+        self.api_base = api_base.rstrip('/')
+        self.base_url = (base_url or f"{self.api_base}/cars").rstrip('/')
+
+        self.username = username or config('API_USERNAME', default='admin')
+        self.password = password or config('API_PASSWORD', default='gigachad123')
+        self.auth = (self.username, self.password) if self.username and self.password else None
 
     def get_list(self) -> List[Dict]:
         try:
@@ -65,7 +69,7 @@ class NetworkHelper:
 
     def create_transaction(self, data: Dict) -> Optional[Dict]:
         try:
-            url = "http://127.0.0.1:8000/api/transactions/"
+            url = f"{self.api_base}/transactions/"
             response = requests.post(url, json=data, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -75,7 +79,7 @@ class NetworkHelper:
 
     def get_dealer_profiles(self) -> List[Dict]:
         try:
-            url = "http://127.0.0.1:8000/api/dealer-profiles/"
+            url = f"{self.api_base}/dealer-profiles/"
             response = requests.get(url, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -85,7 +89,7 @@ class NetworkHelper:
 
     def get_dealer_profile(self, profile_id: int) -> Optional[Dict]:
         try:
-            url = f"http://127.0.0.1:8000/api/dealer-profiles/{profile_id}/"
+            url = f"{self.api_base}/dealer-profiles/{profile_id}/"
             response = requests.get(url, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -95,7 +99,7 @@ class NetworkHelper:
 
     def update_dealer_profile(self, profile_id: int, data: Dict) -> Optional[Dict]:
         try:
-            url = f"http://127.0.0.1:8000/api/dealer-profiles/{profile_id}/"
+            url = f"{self.api_base}/dealer-profiles/{profile_id}/"
             response = requests.put(url, json=data, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -105,7 +109,7 @@ class NetworkHelper:
 
     def get_transactions(self) -> List[Dict]:
         try:
-            url = "http://127.0.0.1:8000/api/transactions/"
+            url = f"{self.api_base}/transactions/"
             response = requests.get(url, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -118,7 +122,7 @@ class NetworkHelper:
     def get_dealer_dashboard(self, user_id: int) -> Optional[Dict]:
         """GET /api/dealer/dashboard/{user_id}/"""
         try:
-            url = f"http://127.0.0.1:8000/api/dealer/dashboard/{user_id}/"
+            url = f"{self.api_base}/dealer/dashboard/{user_id}/"
             response = requests.get(url, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()
@@ -129,7 +133,7 @@ class NetworkHelper:
     def buy_car_api(self, user_id: int, car_id: int) -> Optional[Dict]:
         """POST /api/dealer/buy/"""
         try:
-            url = "http://127.0.0.1:8000/api/dealer/buy/"
+            url = f"{self.api_base}/dealer/buy/"
             data = {'user_id': user_id, 'car_id': car_id}
             response = requests.post(url, json=data, auth=self.auth, timeout=10)
             response.raise_for_status()
@@ -146,7 +150,7 @@ class NetworkHelper:
     def sell_car_api(self, user_id: int, car_id: int) -> Optional[Dict]:
         """POST /api/dealer/sell/"""
         try:
-            url = "http://127.0.0.1:8000/api/dealer/sell/"
+            url = f"{self.api_base}/dealer/sell/"
             data = {'user_id': user_id, 'car_id': car_id}
             response = requests.post(url, json=data, auth=self.auth, timeout=10)
             response.raise_for_status()
@@ -163,7 +167,7 @@ class NetworkHelper:
     def modify_car_api(self, user_id: int, car_id: int, modification_cost: float, price_increase: float, description: str) -> Optional[Dict]:
         """POST /api/dealer/modify/"""
         try:
-            url = "http://127.0.0.1:8000/api/dealer/modify/"
+            url = f"{self.api_base}/dealer/modify/"
             data = {
                 'user_id': user_id,
                 'car_id': car_id,
@@ -186,7 +190,7 @@ class NetworkHelper:
     def get_dealer_transactions(self, user_id: int) -> Optional[Dict]:
         """GET /api/dealer/transactions/{user_id}/"""
         try:
-            url = f"http://127.0.0.1:8000/api/dealer/transactions/{user_id}/"
+            url = f"{self.api_base}/dealer/transactions/{user_id}/"
             response = requests.get(url, auth=self.auth, timeout=10)
             response.raise_for_status()
             return response.json()

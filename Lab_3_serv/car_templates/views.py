@@ -4,10 +4,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from .forms import CarForm, CustomLoginForm
-from .NetworkHelper import NetworkHelper
+from .CarDealerApiManager import CarDealerApiManager
 from decimal import Decimal
 
 
+def get_api_manager():
+    """Helper function to get API manager instance - follows DRY principle"""
+    return CarDealerApiManager()
 
 
 def home(request):
@@ -15,7 +18,7 @@ def home(request):
 
 
 def car_list(request):
-    api = NetworkHelper()
+    api = get_api_manager()
     cars = api.get_list()
     context = {
         'cars': cars,
@@ -25,7 +28,7 @@ def car_list(request):
 
 
 def car_detail(request, car_id):
-    api = NetworkHelper()
+    api = get_api_manager()
     car = api.get_by_id(car_id)
     if not car:
         messages.error(request, f'Car with ID {car_id} not found.')
@@ -43,7 +46,7 @@ def car_add(request):
     if request.method == 'POST':
         form = CarForm(request.POST)
         if form.is_valid():
-            api = NetworkHelper()
+            api = get_api_manager()
             car_data = form.cleaned_data
             # Конвертуємо Django об'єкти в dict для API
             car_dict = {
@@ -74,7 +77,7 @@ def car_add(request):
 
 @require_http_methods(["GET", "POST"])
 def car_edit(request, car_id):
-    api = NetworkHelper()
+    api = get_api_manager()
     car = api.get_by_id(car_id)
     if not car:
         messages.error(request, f'Car with ID {car_id} not found.')
@@ -116,7 +119,7 @@ def car_edit(request, car_id):
 
 @require_http_methods(["POST"])
 def car_delete(request, car_id):
-    api = NetworkHelper()
+    api = get_api_manager()
     car = api.get_by_id(car_id)
     if car:
         car_info = f"{car['make']} {car['model']}"
@@ -132,8 +135,8 @@ def car_delete(request, car_id):
 
 
 def car_api_list(request):
-    network_helper = NetworkHelper()  # uses default admin credentials
-    cars = network_helper.get_list()
+    api = get_api_manager()
+    cars = api.get_list()
 
     if not cars:
         messages.warning(request, 'No cars returned from API or API unreachable.')
@@ -148,8 +151,8 @@ def car_api_list(request):
 
 @require_http_methods(["POST"])
 def car_api_delete(request, car_id):
-    network_helper = NetworkHelper()  # uses default admin credentials
-    success = network_helper.delete_item(car_id)
+    api = get_api_manager()
+    success = api.delete_item(car_id)
 
     if success:
         messages.success(request, 'Car deleted successfully via API!')
@@ -214,7 +217,7 @@ def dealer_dashboard(request):
     """
     Dealer dashboard через API
     """
-    api = NetworkHelper()
+    api = get_api_manager()
     data = api.get_dealer_dashboard(request.user.id)
 
     if not data:
@@ -238,7 +241,7 @@ def buy_car(request, car_id):
     """
     Buy car через API
     """
-    api = NetworkHelper()
+    api = get_api_manager()
     result = api.buy_car_api(request.user.id, car_id)
 
     if result and 'message' in result:
@@ -266,7 +269,7 @@ def modify_car(request, car_id):
             messages.error(request, 'Invalid modification cost or price increase!')
             return redirect('modify_car', car_id=car_id)
 
-        api = NetworkHelper()
+        api = get_api_manager()
         result = api.modify_car_api(request.user.id, car_id, float(modification_cost), float(price_increase), description)
 
         if result and 'message' in result:
@@ -278,7 +281,7 @@ def modify_car(request, car_id):
             messages.error(request, 'Failed to modify car')
 
     # GET - показуємо форму
-    api = NetworkHelper()
+    api = get_api_manager()
     car = api.get_by_id(car_id)
     dashboard_data = api.get_dealer_dashboard(request.user.id)
 
@@ -300,7 +303,7 @@ def sell_car(request, car_id):
     """
     Sell car через API
     """
-    api = NetworkHelper()
+    api = get_api_manager()
     result = api.sell_car_api(request.user.id, car_id)
 
     if result and 'message' in result:
@@ -318,7 +321,7 @@ def transaction_history(request):
     """
     Transaction history через API
     """
-    api = NetworkHelper()
+    api = get_api_manager()
     data = api.get_dealer_transactions(request.user.id)
     dashboard_data = api.get_dealer_dashboard(request.user.id)
 

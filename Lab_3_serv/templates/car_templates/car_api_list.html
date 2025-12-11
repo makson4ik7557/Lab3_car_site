@@ -10,7 +10,7 @@
 <div class="card api-info-card">
     <h2>API Demo</h2>
     <p>This page demonstrates fetching data from the REST API using the <code>requests</code> library.</p>
-    <p>The data is retrieved from: <code>http://127.0.0.1:8000/api/cars/</code></p>
+    <p>The data is retrieved from the REST API endpoint: <code>/api/cars/</code></p>
 </div>
 
 <h1>{{ page_title }}</h1>
@@ -60,7 +60,7 @@
 
 <div class="card api-how-it-works">
     <h3>How It Works</h3>
-    <p>This page uses the <code>NetworkHelper</code> class which:</p>
+    <p>This page uses the <code>CarDealerApiManager</code> class which:</p>
     <ul>
         <li>Makes HTTP GET request to <code>/api/cars/</code> using the <code>requests</code> library</li>
         <li>Retrieves JSON data from the REST API</li>
@@ -79,7 +79,7 @@
     <ul class="api-note-list">
         <li>The Django server is running</li>
         <li>You have created some cars in the database</li>
-        <li>The API endpoint is accessible at <code>http://127.0.0.1:8000/api/cars/</code></li>
+        <li>The API endpoint <code>/api/cars/</code> is accessible</li>
     </ul>
     <a href="{% url 'car_add' %}" class="btn btn-success mt-3">Add a Car</a>
 </div>
