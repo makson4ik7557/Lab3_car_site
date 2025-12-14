@@ -1,13 +1,23 @@
 {% extends 'car_templates/base.html' %}
 
-{% block title %}Analytics Dashboard - Plotly{% endblock %}
+{% block title %}Analytics Dashboard - Plotly v1{% endblock %}
 
 {% block content %}
-<h1>Analytics Dashboard - Plotly</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>📊 Analytics Dashboard <span style="background: #3b82f6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em;">Plotly v1</span></h1>
+    <a href="{% url 'bokeh_dashboard' %}" style="background: #e67e22; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">🔄 Bokeh Dashboard (v2) →</a>
+</div>
 
+<div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+    <p><strong>ℹ️ Доступні версії:</strong></p>
+    <ul>
+        <li><strong>Plotly v1</strong> (поточна) - 6 інтерактивних графіків з Plotly</li>
+        <li><strong>Bokeh v2</strong> - 6 інтерактивних графіків з Bokeh (для повного бала)</li>
+    </ul>
+</div>
 
 <h2>Фільтри</h2>
-<form method="get" action="{% url 'plotly-dashboard' %}">
+<form method="get" action="{% url 'plotly_dashboard' %}">
     <p>
         <label for="min_sales">Мін. продажів співробітника (Графік 1):</label>
         <input type="number" id="min_sales" name="min_sales" value="{{ filters.min_sales }}" min="0">
@@ -25,7 +35,7 @@
         <input type="number" id="min_transactions" name="min_transactions" value="{{ filters.min_transactions }}" min="1">
     </p>
     <button type="submit">Застосувати фільтри</button>
-    <a href="{% url 'plotly-dashboard' %}">Скинути фільтри</a>
+    <a href="{% url 'plotly_dashboard' %}">Скинути фільтри</a>
 </form>
 
 <hr>

@@ -6,6 +6,7 @@ from repo_practice.views import (
     DealerProfileViewSet, TransactionViewSet, DealerViewSet, AnalyticsViewSet
 )
 from repo_practice import dashboard_views
+from repo_practice import bokeh_dashboard_views
 
 # REST API Router
 # АРХІТЕКТУРА: Database → Repository → API → UI
@@ -22,7 +23,8 @@ router.register(r'analytics', AnalyticsViewSet, basename='analytics')  # Analyti
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),  # REST API layer (отримує дані з Repository)
-    path('dashboard/plotly/', dashboard_views.plotly_dashboard, name='plotly-dashboard'),  # UI layer (отримує дані з API)
+    path('dashboard/plotly/', dashboard_views.plotly_dashboard, name='plotly_dashboard'),  # Plotly Dashboard v1
+    path('dashboard/bokeh/', bokeh_dashboard_views.bokeh_dashboard, name='bokeh_dashboard'),  # Bokeh Dashboard v2
     path('', include('car_templates.urls')),  # Include car_templates URLs
 ]
 

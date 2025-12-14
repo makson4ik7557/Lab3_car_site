@@ -18,7 +18,7 @@
                 <li><a href="{% url 'car_add' %}">New Vehicle</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'dealer_dashboard' %}">Dealer</a></li>
-                    <li><a href="{% url 'plotly-dashboard' %}">Analytics</a></li>
+                    <li><a href="{% url 'plotly_dashboard' %}">Analytics</a></li>
                 {% endif %}
                 <li><a href="/admin/">Administration</a></li>
                 {% if user.is_authenticated %}
