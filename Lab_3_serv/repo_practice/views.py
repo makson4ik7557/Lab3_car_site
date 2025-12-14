@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.db import transaction as db_transaction
 from decimal import Decimal
+import pandas as pd
 
 
 class BaseAuthenticatedViewSet(viewsets.ModelViewSet):
@@ -184,9 +185,10 @@ class DealerViewSet(viewsets.ViewSet):
 
             dealer_profile, created = repo.dealer_profiles.get_or_create_by_user(user)
             owned_cars = repo.cars.get(owner=user)
-            transactions = repo.transactions.get_dealer_recent_transactions(user, limit=20)
+            transactions = repo.transactions.get_dealer_recent_transactions(user, limit=100)
             all_available = repo.cars.get(in_stock=True)
-            available_cars = [car for car in all_available if car.owner != user][:10]
+            # Видаляємо [:10] щоб пагінація працювала на UI рівні
+            available_cars = [car for car in all_available if car.owner != user]
 
             return Response({
                 'dealer_profile': DealerProfileSerializer(dealer_profile).data,
@@ -397,3 +399,295 @@ class DealerViewSet(viewsets.ViewSet):
             })
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class AnalyticsViewSet(viewsets.ViewSet):
+    """
+    API для аналітики з використанням pandas DataFrame
+    Всі endpoint'и конвертують дані з ORM запитів у pandas для аналізу
+
+    URI endpoints:
+    - /api/analytics/sales-by-employee/
+    - /api/analytics/profit-by-brand/
+    - /api/analytics/transaction-dynamics/
+    - /api/analytics/top-customers/
+    - /api/analytics/car-price-statistics/
+    - /api/analytics/dealer-balance-summary/
+    """
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.repo = RepositoryService()
+
+    @action(detail=False, methods=['get'], url_path='sales-by-employee')
+    def sales_by_employee(self, request):
+        """
+        GET /api/analytics/sales-by-employee/?min_sales=5
+
+        Агрегований запит 1: Продажі по співробітниках
+        Конвертує ORM QuerySet в pandas DataFrame та обчислює статистику
+        """
+        min_sales_count = int(request.query_params.get('min_sales', 1))
+
+        try:
+            # Отримуємо дані з ORM запиту
+            data = self.repo.analytics.get_sales_by_employee(min_sales_count)
+
+            # Конвертуємо в pandas DataFrame
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({
+                    'message': 'No data available',
+                    'orm_query_used': 'Sale.objects.select_related().values().annotate().filter().order_by()',
+                    'records_count': 0
+                })
+
+            # Pandas аналіз: обчислюємо статистичні показники
+            stats = {
+                'mean_revenue': float(df['total_revenue'].mean()),
+                'median_revenue': float(df['total_revenue'].median()),
+                'min_revenue': float(df['total_revenue'].min()),
+                'max_revenue': float(df['total_revenue'].max()),
+                'mean_sales_count': float(df['total_sales'].mean()),
+                'total_employees': len(df)
+            }
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, SUM, AVG, MAX, MIN',
+                    'group_by': 'employee',
+                    'having_clause': f'total_sales >= {min_sales_count}',
+                    'order_by': 'total_revenue DESC'
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='profit-by-brand')
+    def profit_by_brand(self, request):
+        """
+        GET /api/analytics/profit-by-brand/?min_cars=2
+
+        Агрегований запит 2: Прибуток по марках автомобілів
+        """
+        min_cars_sold = int(request.query_params.get('min_cars', 1))
+
+        try:
+            data = self.repo.analytics.get_profit_by_car_brand(min_cars_sold)
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({'message': 'No data available', 'records_count': 0})
+
+            # Pandas статистика
+            stats = {
+                'mean_revenue_per_brand': float(df['total_revenue'].mean()),
+                'median_revenue_per_brand': float(df['total_revenue'].median()),
+                'highest_revenue_brand': df.loc[df['total_revenue'].idxmax()]['car__make'],
+                'lowest_revenue_brand': df.loc[df['total_revenue'].idxmin()]['car__make'],
+                'total_brands': len(df),
+                'total_revenue_all_brands': float(df['total_revenue'].sum())
+            }
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, SUM, AVG, MAX',
+                    'group_by': 'car__make',
+                    'having_clause': f'cars_sold >= {min_cars_sold}',
+                    'order_by': 'total_revenue DESC'
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='transaction-dynamics')
+    def transaction_dynamics(self, request):
+        """
+        GET /api/analytics/transaction-dynamics/?min_amount=1000
+
+        Агрегований запит 3: Динаміка транзакцій дилерів по типах
+        """
+        min_amount = float(request.query_params.get('min_amount', 0))
+
+        try:
+            data = self.repo.analytics.get_transaction_dynamics_by_dealer(min_amount)
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({'message': 'No data available', 'records_count': 0})
+
+            # Pandas групування та аналіз
+            stats = {
+                'mean_transaction_count': float(df['transaction_count'].mean()),
+                'median_transaction_count': float(df['transaction_count'].median()),
+                'total_amount_all_dealers': float(df['total_amount'].sum()),
+                'mean_amount_per_dealer': float(df['total_amount'].mean()),
+                'unique_dealers': df['dealer__username'].nunique(),
+                'transaction_types': df['transaction_type'].unique().tolist()
+            }
+
+            # Групуємо по типу транзакції для додаткової статистики
+            type_stats = df.groupby('transaction_type').agg({
+                'total_amount': 'sum',
+                'transaction_count': 'sum'
+            }).to_dict(orient='index')
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, SUM, AVG, MAX',
+                    'group_by': 'dealer, transaction_type',
+                    'having_clause': f'total_amount >= {min_amount}',
+                    'order_by': 'dealer__username, total_amount DESC'
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'by_transaction_type': type_stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='top-customers')
+    def top_customers(self, request):
+        """
+        GET /api/analytics/top-customers/?limit=10
+
+        Агрегований запит 4: Топ клієнтів по витратам
+        """
+        limit = int(request.query_params.get('limit', 10))
+
+        try:
+            data = self.repo.analytics.get_top_customers_by_spending(limit)
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({'message': 'No data available', 'records_count': 0})
+
+            # Pandas статистика
+            stats = {
+                'mean_spending': float(df['total_spent'].mean()),
+                'median_spending': float(df['total_spent'].median()),
+                'min_spending': float(df['total_spent'].min()),
+                'max_spending': float(df['total_spent'].max()),
+                'total_revenue': float(df['total_spent'].sum()),
+                'mean_cars_per_customer': float(df['cars_purchased'].mean())
+            }
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, SUM, AVG, MAX',
+                    'group_by': 'customer',
+                    'order_by': 'total_spent DESC',
+                    'limit': limit
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='car-price-statistics')
+    def car_price_statistics(self, request):
+        """
+        GET /api/analytics/car-price-statistics/?min_cars=3
+
+        Агрегований запит 5: Статистика цін автомобілів по рокам виробництва
+        """
+        min_cars_count = int(request.query_params.get('min_cars', 1))
+
+        try:
+            data = self.repo.analytics.get_car_price_statistics_by_year(min_cars_count)
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({'message': 'No data available', 'records_count': 0})
+
+            # Конвертуємо Decimal в float для pandas
+            for col in ['average_price', 'max_price', 'min_price']:
+                if col in df.columns:
+                    df[col] = df[col].astype(float)
+
+            # Pandas статистика
+            stats = {
+                'overall_mean_price': float(df['average_price'].mean()),
+                'overall_median_price': float(df['average_price'].median()),
+                'year_range': {
+                    'oldest': int(df['year'].min()),
+                    'newest': int(df['year'].max())
+                },
+                'total_cars': int(df['cars_count'].sum()),
+                'total_in_stock': int(df['in_stock_count'].sum()),
+                'most_expensive_year': int(df.loc[df['average_price'].idxmax()]['year']),
+                'cheapest_year': int(df.loc[df['average_price'].idxmin()]['year'])
+            }
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, AVG, MAX, MIN, COUNT with Q filter',
+                    'group_by': 'year',
+                    'having_clause': f'cars_count >= {min_cars_count}',
+                    'order_by': 'year DESC'
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='dealer-balance-summary')
+    def dealer_balance_summary(self, request):
+        """
+        GET /api/analytics/dealer-balance-summary/?min_transactions=5
+
+        Агрегований запит 6: Сумарна інформація про баланси дилерів
+        """
+        min_transactions = int(request.query_params.get('min_transactions', 1))
+
+        try:
+            data = self.repo.analytics.get_dealer_balance_summary(min_transactions)
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                return Response({'message': 'No data available', 'records_count': 0})
+
+            # Конвертуємо Decimal в float
+            for col in ['current_balance', 'total_buy_amount', 'total_sell_amount', 'average_transaction']:
+                if col in df.columns:
+                    df[col] = df[col].fillna(0).astype(float)
+
+            # Pandas статистика
+            stats = {
+                'mean_balance': float(df['current_balance'].mean()),
+                'median_balance': float(df['current_balance'].median()),
+                'min_balance': float(df['current_balance'].min()),
+                'max_balance': float(df['current_balance'].max()),
+                'total_dealers': len(df),
+                'total_transactions': int(df['total_transactions'].sum()),
+                'total_buy_operations': int(df['buy_transactions'].sum()),
+                'total_sell_operations': int(df['sell_transactions'].sum()),
+                'total_modify_operations': int(df['modify_transactions'].sum())
+            }
+
+            return Response({
+                'query_info': {
+                    'orm_aggregations': 'COUNT, MAX, SUM with Q filters, AVG',
+                    'group_by': 'dealer',
+                    'having_clause': f'total_transactions >= {min_transactions}',
+                    'order_by': 'current_balance DESC'
+                },
+                'records_count': len(df),
+                'statistics': stats,
+                'data': df.to_dict(orient='records')
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

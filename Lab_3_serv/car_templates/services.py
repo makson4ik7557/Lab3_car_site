@@ -1,7 +1,7 @@
 # файл з бізнес-логікою для операцій buy/sell/modify car.
 
 from typing import Optional, Dict
-from .CarDealerApiManager import CarDealerApiManager
+from .CarDealerApiManager import CarDealerApiManager, DealerOperationsApiManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class CarDealerService:
     def __init__(self):
         self.api = CarDealerApiManager()
+        self.dealer_api = DealerOperationsApiManager()
 
     def get_all_cars(self) -> list:
         """Отримати всі машини через API"""

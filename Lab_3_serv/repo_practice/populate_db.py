@@ -4,8 +4,9 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Lab_3_serv.settings')
 django.setup()
 
-from repo_practice.models import Car, Customer, Employee
+from repo_practice.models import Car, Customer, Employee, Sale
 from decimal import Decimal
+from datetime import date, timedelta
 
 def add_cars():
     cars = [
@@ -60,9 +61,72 @@ def add_employees():
         if created:
             print(f"Added employee: {employee['first_name']} {employee['last_name']}")
 
+def add_sales():
+    """Створює тестові продажі для дашборда"""
+    print("\n=== Створення тестових продажів ===")
+    
+    # Отримуємо всіх клієнтів, співробітників та авто
+    customers = list(Customer.objects.all())
+    employees = list(Employee.objects.all())
+    cars = list(Car.objects.filter(in_stock=True))
+    
+    if not customers:
+        print("❌ Немає клієнтів! Спочатку додайте клієнтів.")
+        return
+    if not employees:
+        print("❌ Немає співробітників! Спочатку додайте співробітників.")
+        return
+    if not cars:
+        print("❌ Немає авто! Спочатку додайте авто.")
+        return
+    
+    print(f"📊 Доступно: {len(customers)} клієнтів, {len(employees)} співробітників, {len(cars)} авто")
+    
+    # Створюємо продажі (безпечно, з перевіркою індексів)
+    sales_data = []
+    
+    # Створюємо декілька продажів, використовуючи циклічний доступ до клієнтів
+    num_sales = min(5, len(cars))  # Створимо до 5 продажів
+    
+    for i in range(num_sales):
+        if i < len(cars):
+            sales_data.append({
+                'car': cars[i],
+                'customer': customers[i % len(customers)],  # Циклічно використовуємо клієнтів
+                'employee': employees[i % len(employees)],  # Циклічно використовуємо співробітників
+                'sale_date': date.today() - timedelta(days=10 - i * 2)
+            })
+    
+    created_count = 0
+    for sale_info in sales_data:
+        car = sale_info['car']
+        # Перевіряємо чи це авто вже продане
+        if Sale.objects.filter(car=car).exists():
+            print(f"⏭️  Пропускаємо: {car.make} {car.model} вже продано")
+            continue
+
+        sale = Sale.objects.create(
+            car=car,
+            customer=sale_info['customer'],
+            employee=sale_info['employee'],
+            sale_price=car.price,  # Ціна продажу = ціна авто
+            sale_date=sale_info['sale_date']
+        )
+        created_count += 1
+        print(f"✅ Створено продаж: {car.make} {car.model} → {sale_info['customer'].first_name} {sale_info['customer'].last_name} (через {sale_info['employee'].first_name} {sale_info['employee'].last_name})")
+
+    print(f"\n✨ Створено {created_count} нових продажів")
+
 if __name__ == '__main__':
-    add_cars()
-    add_customers()
-    add_employees()
-    print("\nDatabase populated")
+    print("=" * 70)
+    print("ЗАПОВНЕННЯ БАЗИ ДАНИХ ТЕСТОВИМИ ДАНИМИ")
+    print("=" * 70)
+
+    print()
+    add_sales()  # Додаємо продажі
+
+    print("\n" + "=" * 70)
+    print("✅ База даних заповнена!")
+    print("=" * 70)
+    print("\n💡 Тепер відкрийте dashboard: http://127.0.0.1:8000/dashboard/plotly/")
 

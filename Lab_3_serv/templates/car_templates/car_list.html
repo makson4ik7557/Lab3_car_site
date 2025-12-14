@@ -47,8 +47,28 @@
 </table>
 
 <p class="car-count">
-    Total cars: <strong>{{ cars|length }}</strong>
+    Showing {{ cars.start_index }} - {{ cars.end_index }} of <strong>{{ cars.paginator.count }}</strong> cars
 </p>
+
+<!-- Pagination Controls -->
+{% if cars.has_other_pages %}
+<div class="pagination">
+    {% if cars.has_previous %}
+        <a href="?page=1" class="btn btn-small">« First</a>
+        <a href="?page={{ cars.previous_page_number }}" class="btn btn-small">‹ Previous</a>
+    {% endif %}
+
+    <span class="pagination-info">
+        Page {{ cars.number }} of {{ cars.paginator.num_pages }}
+    </span>
+
+    {% if cars.has_next %}
+        <a href="?page={{ cars.next_page_number }}" class="btn btn-small">Next ›</a>
+        <a href="?page={{ cars.paginator.num_pages }}" class="btn btn-small">Last »</a>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <div class="card text-center empty-inventory">
     <h3>No cars available</h3>

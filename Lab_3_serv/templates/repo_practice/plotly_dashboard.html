@@ -1,0 +1,184 @@
+{% extends 'car_templates/base.html' %}
+
+{% block title %}Analytics Dashboard - Plotly{% endblock %}
+
+{% block content %}
+<h1>Analytics Dashboard - Plotly</h1>
+
+
+<h2>Фільтри</h2>
+<form method="get" action="{% url 'plotly-dashboard' %}">
+    <p>
+        <label for="min_sales">Мін. продажів співробітника (Графік 1):</label>
+        <input type="number" id="min_sales" name="min_sales" value="{{ filters.min_sales }}" min="0">
+    </p>
+    <p>
+        <label for="min_cars">Мін. авто марки (Графік 2):</label>
+        <input type="number" id="min_cars" name="min_cars" value="{{ filters.min_cars }}" min="0">
+    </p>
+    <p>
+        <label for="min_amount">Мін. сума витрат клієнта (Графік 4):</label>
+        <input type="number" id="min_amount" name="min_amount" value="{{ filters.min_amount }}" min="0">
+    </p>
+    <p>
+        <label for="min_transactions">Мін. транзакцій дилера (Графік 6):</label>
+        <input type="number" id="min_transactions" name="min_transactions" value="{{ filters.min_transactions }}" min="1">
+    </p>
+    <button type="submit">Застосувати фільтри</button>
+    <a href="{% url 'plotly-dashboard' %}">Скинути фільтри</a>
+</form>
+
+<hr>
+
+<h2>Графік 1: Продажі по співробітниках</h2>
+{% if chart1_json %}
+    <div id="chart1"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+<hr>
+
+<h2>Графік 2: Розподіл прибутку по марках</h2>
+{% if chart2_json %}
+    <div id="chart2"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+<hr>
+
+<h2>Графік 3: Динаміка транзакцій дилерів</h2>
+{% if chart3_json %}
+    <div id="chart3"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+<hr>
+
+<h2>Графік 4: Витрати топ клієнтів</h2>
+{% if chart4_json %}
+    <div id="chart4"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+<hr>
+
+<h2>Графік 5: Розподіл цін авто по рокам</h2>
+{% if chart5_json %}
+    <div id="chart5"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+<hr>
+
+<h2>Графік 6: Баланси дилерів</h2>
+{% if chart6_json %}
+    <div id="chart6"></div>
+{% else %}
+    <p>Немає даних для відображення</p>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+    console.log("=== PLOTLY DASHBOARD LOADING ===");
+    console.log("Plotly loaded:", typeof Plotly !== 'undefined');
+
+    // Функція для рендерингу Plotly графіків
+    function renderChart(elementId, chartData) {
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("Rendering chart:", elementId);
+
+        // Перевірка елемента
+        var element = document.getElementById(elementId);
+        console.log("Element exists:", element !== null);
+        if (!element) {
+            console.error("Element", elementId, "NOT FOUND in DOM!");
+            return;
+        }
+
+        // Перевірка даних
+        console.log("Data exists:", chartData !== null && chartData !== undefined);
+        console.log("Data type:", typeof chartData);
+
+        if (chartData) {
+            console.log("Data.data:", chartData.data ? "✅" : "❌");
+            console.log("Data.layout:", chartData.layout ? "✅" : "❌");
+
+            if (chartData.data && chartData.data.length > 0) {
+                console.log("Data traces:", chartData.data.length);
+                console.log("First trace type:", chartData.data[0].type);
+                if (chartData.data[0].x && chartData.data[0].y) {
+                    console.log("First trace X length:", chartData.data[0].x.length);
+                    console.log("First trace Y length:", chartData.data[0].y.length);
+                }
+            }
+
+            try {
+                Plotly.newPlot(elementId, chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+                    displaylogo: false
+                });
+                console.log("Chart", elementId, "rendered successfully");
+            } catch(e) {
+                console.error("Error rendering", elementId, ":", e);
+                console.error("Stack:", e.stack);
+            }
+        } else {
+            console.log("No data for chart", elementId);
+        }
+
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    }
+
+    // Рендеримо всі графіки
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM Content Loaded - starting chart rendering");
+
+        {% if chart1_json %}
+            renderChart('chart1', {{ chart1_json|safe }});
+        {% endif %}
+
+        {% if chart2_json %}
+            renderChart('chart2', {{ chart2_json|safe }});
+        {% endif %}
+
+        {% if chart3_json %}
+            renderChart('chart3', {{ chart3_json|safe }});
+        {% endif %}
+
+        {% if chart4_json %}
+            renderChart('chart4', {{ chart4_json|safe }});
+        {% endif %}
+
+        {% if chart5_json %}
+            renderChart('chart5', {{ chart5_json|safe }});
+        {% endif %}
+
+        {% if chart6_json %}
+            renderChart('chart6', {{ chart6_json|safe }});
+        {% endif %}
+
+        console.log("=== ALL CHARTS RENDERED ===");
+    });
+
+    // Responsive resize
+    window.addEventListener('resize', function() {
+        var charts = ['chart1', 'chart2', 'chart3', 'chart4', 'chart5', 'chart6'];
+        charts.forEach(function(chartId) {
+            var element = document.getElementById(chartId);
+            if (element && element.data) {
+                Plotly.Plots.resize(chartId);
+            }
+        });
+    });
+</script>
+{% endblock %}

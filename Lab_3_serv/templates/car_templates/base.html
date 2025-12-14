@@ -6,6 +6,7 @@
     <title>{% block title %}AutoHub - Vehicle Management Platform{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'car_templates/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <nav>
@@ -17,6 +18,7 @@
                 <li><a href="{% url 'car_add' %}">New Vehicle</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'dealer_dashboard' %}">Dealer</a></li>
+                    <li><a href="{% url 'plotly-dashboard' %}">Analytics</a></li>
                 {% endif %}
                 <li><a href="/admin/">Administration</a></li>
                 {% if user.is_authenticated %}
@@ -100,6 +102,7 @@
         }
     }
     </style>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
 
