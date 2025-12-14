@@ -42,11 +42,46 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Pagination for owned cars -->
+{% if owned_cars.has_other_pages %}
+<div class="pagination">
+    {% if owned_cars.has_previous %}
+        <a href="?owned_page={{ owned_cars.previous_page_number }}" class="btn btn-small">‹ Previous</a>
+    {% endif %}
+    <span class="pagination-info">Page {{ owned_cars.number }} of {{ owned_cars.paginator.num_pages }}</span>
+    {% if owned_cars.has_next %}
+        <a href="?owned_page={{ owned_cars.next_page_number }}" class="btn btn-small">Next ›</a>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <p>You don't own any cars yet. Buy some from the market.</p>
 {% endif %}
 
 <h2 class="section-heading">Available Cars to Buy</h2>
+
+<!-- Sorting Controls -->
+<div class="sort-controls">
+    <form method="get" action="{% url 'dealer_dashboard' %}" class="sort-form">
+        <label for="sort">Sort by:</label>
+        <select name="sort" id="sort" onchange="this.form.submit()">
+            <option value="default" {% if current_sort == 'default' %}selected{% endif %}>Default</option>
+            <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+            <option value="year_desc" {% if current_sort == 'year_desc' %}selected{% endif %}>Year: Newest First</option>
+            <option value="year_asc" {% if current_sort == 'year_asc' %}selected{% endif %}>Year: Oldest First</option>
+            <option value="make" {% if current_sort == 'make' %}selected{% endif %}>Make: A-Z</option>
+        </select>
+        <!-- Зберігаємо поточну сторінку при зміні сортування -->
+        {% if request.GET.available_page %}
+            <input type="hidden" name="available_page" value="{{ request.GET.available_page }}">
+        {% endif %}
+    </form>
+    <p class="results-count">Showing {{ available_cars.start_index }} - {{ available_cars.end_index }} of {{ available_cars.paginator.count }} cars</p>
+</div>
+
 {% if available_cars %}
 <table>
     <thead>
@@ -75,6 +110,20 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Pagination for available cars -->
+{% if available_cars.has_other_pages %}
+<div class="pagination">
+    {% if available_cars.has_previous %}
+        <a href="?available_page={{ available_cars.previous_page_number }}&sort={{ current_sort }}" class="btn btn-small">‹ Previous</a>
+    {% endif %}
+    <span class="pagination-info">Page {{ available_cars.number }} of {{ available_cars.paginator.num_pages }}</span>
+    {% if available_cars.has_next %}
+        <a href="?available_page={{ available_cars.next_page_number }}&sort={{ current_sort }}" class="btn btn-small">Next ›</a>
+    {% endif %}
+</div>
+{% endif %}
+
 <p class="link-spacing"><a href="{% url 'car_list' %}">View All Available Cars</a></p>
 {% else %}
 <p>No cars available to buy at the moment.</p>
@@ -114,6 +163,20 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Pagination for transactions -->
+{% if transactions.has_other_pages %}
+<div class="pagination">
+    {% if transactions.has_previous %}
+        <a href="?trans_page={{ transactions.previous_page_number }}" class="btn btn-small">‹ Previous</a>
+    {% endif %}
+    <span class="pagination-info">Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}</span>
+    {% if transactions.has_next %}
+        <a href="?trans_page={{ transactions.next_page_number }}" class="btn btn-small">Next ›</a>
+    {% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <p>No transactions yet.</p>
 {% endif %}

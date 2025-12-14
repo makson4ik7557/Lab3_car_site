@@ -4,6 +4,7 @@ from ..repositories.employee_repo import EmployeeRepository
 from ..repositories.sale_repo import SaleRepository
 from ..repositories.dealer_profile_repo import DealerProfileRepository
 from ..repositories.transaction_repo import TransactionRepository
+from ..repositories.analytics_repo import AnalyticsRepository
 
 
 class RepositoryService:
@@ -14,6 +15,7 @@ class RepositoryService:
         self.sales = SaleRepository()
         self.dealer_profiles = DealerProfileRepository()
         self.transactions = TransactionRepository()
+        self.analytics = AnalyticsRepository()
 
 # Глобальний екземпляр для використання
 repository_service = RepositoryService()

@@ -1,3 +1,2 @@
-import pymysql
-pymysql.install_as_MySQLdb()
+# Використовуємо mysqlclient 2.2.7 (не потрібен pymysql)
 

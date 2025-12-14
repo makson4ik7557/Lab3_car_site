@@ -3,14 +3,20 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .forms import CarForm, CustomLoginForm
-from .CarDealerApiManager import CarDealerApiManager
+from .CarDealerApiManager import CarDealerApiManager, DealerOperationsApiManager
 from decimal import Decimal
 
 
 def get_api_manager():
     """Helper function to get API manager instance - follows DRY principle"""
     return CarDealerApiManager()
+
+
+def get_dealer_api_manager():
+    """Helper function to get Dealer Operations API manager instance"""
+    return DealerOperationsApiManager()
 
 
 def home(request):
@@ -20,8 +26,20 @@ def home(request):
 def car_list(request):
     api = get_api_manager()
     cars = api.get_list()
+
+    # Пагінація - 20 автомобілів на сторінку
+    paginator = Paginator(cars, 20)
+    page = request.GET.get('page', 1)
+
+    try:
+        cars_page = paginator.page(page)
+    except PageNotAnInteger:
+        cars_page = paginator.page(1)
+    except EmptyPage:
+        cars_page = paginator.page(paginator.num_pages)
+
     context = {
-        'cars': cars,
+        'cars': cars_page,
         'page_title': 'Car Inventory'
     }
     return render(request, 'car_templates/car_list.html', context)
@@ -141,8 +159,19 @@ def car_api_list(request):
     if not cars:
         messages.warning(request, 'No cars returned from API or API unreachable.')
 
+    # Пагінація - 20 автомобілів на сторінку
+    paginator = Paginator(cars, 20)
+    page = request.GET.get('page', 1)
+
+    try:
+        cars_page = paginator.page(page)
+    except PageNotAnInteger:
+        cars_page = paginator.page(1)
+    except EmptyPage:
+        cars_page = paginator.page(paginator.num_pages)
+
     context = {
-        'cars': cars,
+        'cars': cars_page,
         'page_title': 'Car Inventory (via API)',
         'using_api': True
     }
@@ -215,20 +244,64 @@ def user_logout(request):
 @login_required
 def dealer_dashboard(request):
     """
-    Dealer dashboard через API
+    Dealer dashboard через API з пагінацією
     """
-    api = get_api_manager()
+    api = get_dealer_api_manager()
     data = api.get_dealer_dashboard(request.user.id)
 
     if not data:
         messages.error(request, 'Failed to load dashboard')
         return redirect('home')
 
+    # Пагінація для власних авто (10 на сторінку)
+    owned_cars = data.get('owned_cars', [])
+    owned_paginator = Paginator(owned_cars, 10)
+    owned_page = request.GET.get('owned_page', 1)
+    try:
+        owned_cars_page = owned_paginator.page(owned_page)
+    except (PageNotAnInteger, EmptyPage):
+        owned_cars_page = owned_paginator.page(1)
+
+    # Пагінація для транзакцій (15 на сторінку)
+    transactions = data.get('transactions', [])
+    trans_paginator = Paginator(transactions, 15)
+    trans_page = request.GET.get('trans_page', 1)
+    try:
+        transactions_page = trans_paginator.page(trans_page)
+    except (PageNotAnInteger, EmptyPage):
+        transactions_page = trans_paginator.page(1)
+
+    # Сортування та пагінація для доступних авто (15 на сторінку)
+    available_cars = data.get('available_cars', [])
+
+    # Отримуємо параметр сортування
+    sort_by = request.GET.get('sort', 'default')
+
+    # Сортуємо список
+    if sort_by == 'price_asc':
+        available_cars = sorted(available_cars, key=lambda x: float(x.get('price', 0)))
+    elif sort_by == 'price_desc':
+        available_cars = sorted(available_cars, key=lambda x: float(x.get('price', 0)), reverse=True)
+    elif sort_by == 'year_desc':
+        available_cars = sorted(available_cars, key=lambda x: int(x.get('year', 0)), reverse=True)
+    elif sort_by == 'year_asc':
+        available_cars = sorted(available_cars, key=lambda x: int(x.get('year', 0)))
+    elif sort_by == 'make':
+        available_cars = sorted(available_cars, key=lambda x: x.get('make', ''))
+
+    available_paginator = Paginator(available_cars, 15)
+    available_page = request.GET.get('available_page', 1)
+    try:
+        available_cars_page = available_paginator.page(available_page)
+    except (PageNotAnInteger, EmptyPage):
+        available_cars_page = available_paginator.page(1)
+
     context = {
         'dealer_profile': data.get('dealer_profile'),
-        'owned_cars': data.get('owned_cars', []),
-        'transactions': data.get('transactions', []),
-        'available_cars': data.get('available_cars', []),
+        'owned_cars': owned_cars_page,
+        'transactions': transactions_page,
+        'available_cars': available_cars_page,
+        'current_sort': sort_by,
         'page_title': 'Dealer Dashboard'
     }
     return render(request, 'car_templates/dealer_dashboard.html', context)
@@ -241,7 +314,7 @@ def buy_car(request, car_id):
     """
     Buy car через API
     """
-    api = get_api_manager()
+    api = get_dealer_api_manager()
     result = api.buy_car_api(request.user.id, car_id)
 
     if result and 'message' in result:
@@ -269,8 +342,8 @@ def modify_car(request, car_id):
             messages.error(request, 'Invalid modification cost or price increase!')
             return redirect('modify_car', car_id=car_id)
 
-        api = get_api_manager()
-        result = api.modify_car_api(request.user.id, car_id, float(modification_cost), float(price_increase), description)
+        dealer_api = get_dealer_api_manager()
+        result = dealer_api.modify_car_api(request.user.id, car_id, float(modification_cost), float(price_increase), description)
 
         if result and 'message' in result:
             messages.success(request, result['message'])
@@ -283,7 +356,8 @@ def modify_car(request, car_id):
     # GET - показуємо форму
     api = get_api_manager()
     car = api.get_by_id(car_id)
-    dashboard_data = api.get_dealer_dashboard(request.user.id)
+    dealer_api = get_dealer_api_manager()
+    dashboard_data = dealer_api.get_dealer_dashboard(request.user.id)
 
     if not car or car.get('owner') != request.user.id:
         messages.error(request, 'Car not found or you do not own this car.')
@@ -303,7 +377,7 @@ def sell_car(request, car_id):
     """
     Sell car через API
     """
-    api = get_api_manager()
+    api = get_dealer_api_manager()
     result = api.sell_car_api(request.user.id, car_id)
 
     if result and 'message' in result:
@@ -321,7 +395,7 @@ def transaction_history(request):
     """
     Transaction history через API
     """
-    api = get_api_manager()
+    api = get_dealer_api_manager()
     data = api.get_dealer_transactions(request.user.id)
     dashboard_data = api.get_dealer_dashboard(request.user.id)
 

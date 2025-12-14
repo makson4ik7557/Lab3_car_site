@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Bokeh Analytics Dashboard v2</title>
+    <link rel="stylesheet" href="https://cdn.bokeh.org/bokeh/release/bokeh-3.8.1.min.css">
+</head>
+<body>
+    <h1>Analytics Dashboard - Bokeh v2</h1>
+
+    <p>
+        <a href="{% url 'plotly_dashboard' %}">← Plotly Dashboard (v1)</a> |
+        <a href="{% url 'bokeh_dashboard' %}">Bokeh Dashboard (v2)</a>
+    </p>
+
+    <hr>
+
+    <h2>Фільтри</h2>
+    <form method="get" action="{% url 'bokeh_dashboard' %}">
+        <p>
+            <label>Мін. продажів співробітника: <input type="number" name="min_sales" value="{{ filters.min_sales }}" min="1"></label>
+        </p>
+        <p>
+            <label>Мін. авто марки: <input type="number" name="min_cars" value="{{ filters.min_cars }}" min="1"></label>
+        </p>
+        <p>
+            <label>Мін. сума транзакції ($): <input type="number" name="min_amount" value="{{ filters.min_amount }}" min="0" step="0.01"></label>
+        </p>
+        <p>
+            <label>Топ клієнтів: <input type="number" name="top_customers" value="{{ filters.top_customers }}" min="5" max="50"></label>
+        </p>
+        <p>
+            <label>Мін. авто на рік: <input type="number" name="min_cars_year" value="{{ filters.min_cars_year }}" min="1"></label>
+        </p>
+        <p>
+            <label>Мін. транзакцій: <input type="number" name="min_transactions" value="{{ filters.min_transactions }}" min="1"></label>
+        </p>
+        <button type="submit">Застосувати фільтри</button>
+    </form>
+
+    <hr>
+
+    <h2>1. Продажі по співробітниках</h2>
+    {% if chart1_div %}
+        {{ chart1_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>2. Розподіл прибутку по марках</h2>
+    {% if chart2_div %}
+        {{ chart2_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>3. Динаміка транзакцій дилерів</h2>
+    {% if chart3_div %}
+        {{ chart3_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>4. Топ клієнти по витратам</h2>
+    {% if chart4_div %}
+        {{ chart4_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>5. Статистика цін по рокам</h2>
+    {% if chart5_div %}
+        {{ chart5_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>6. Операції та баланси дилерів</h2>
+    {% if chart6_div %}
+        {{ chart6_div|safe }}
+    {% else %}
+        <p>Немає даних</p>
+    {% endif %}
+
+    <script src="https://cdn.bokeh.org/bokeh/release/bokeh-3.8.1.min.js"></script>
+    {% if chart1_script %}{{ chart1_script|safe }}{% endif %}
+    {% if chart2_script %}{{ chart2_script|safe }}{% endif %}
+    {% if chart3_script %}{{ chart3_script|safe }}{% endif %}
+    {% if chart4_script %}{{ chart4_script|safe }}{% endif %}
+    {% if chart5_script %}{{ chart5_script|safe }}{% endif %}
+    {% if chart6_script %}{{ chart6_script|safe }}{% endif %}
+</body>
+</html>
+
