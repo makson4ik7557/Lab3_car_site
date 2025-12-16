@@ -94,3 +94,27 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.dealer.username} - {self.transaction_type} - ${self.amount}"
+
+class BenchmarkResult(models.Model):
+    EXECUTION_TYPES = [
+        ('threading', 'Threading'),
+        ('multiprocessing', 'Multiprocessing'),
+    ]
+
+    execution_type = models.CharField(max_length=20, choices=EXECUTION_TYPES)
+    num_workers = models.IntegerField()
+    batch_size = models.IntegerField()
+    num_queries = models.IntegerField(default=100)
+    execution_time = models.FloatField()
+    cpu_usage = models.FloatField(null=True, blank=True)
+    memory_usage = models.FloatField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'benchmark_results'
+        managed = True
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.execution_type} - {self.num_workers} workers - {self.execution_time:.2f}s"
+

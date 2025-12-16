@@ -3,7 +3,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from repo_practice.views import (
     CarViewSet, CustomerViewSet, EmployeeViewSet, SaleViewSet,
-    DealerProfileViewSet, TransactionViewSet, DealerViewSet, AnalyticsViewSet
+    DealerProfileViewSet, TransactionViewSet, DealerViewSet, AnalyticsViewSet,
+    benchmark_dashboard, run_benchmark, get_benchmark_results, clear_benchmark_results, create_demo_data
 )
 from repo_practice import dashboard_views
 from repo_practice import bokeh_dashboard_views
@@ -25,6 +26,11 @@ urlpatterns = [
     path('api/', include(router.urls)),  # REST API layer (отримує дані з Repository)
     path('dashboard/plotly/', dashboard_views.plotly_dashboard, name='plotly_dashboard'),  # Plotly Dashboard v1
     path('dashboard/bokeh/', bokeh_dashboard_views.bokeh_dashboard, name='bokeh_dashboard'),  # Bokeh Dashboard v2
+    path('repo/benchmark/', benchmark_dashboard, name='benchmark_dashboard'),
+    path('repo/benchmark/run/', run_benchmark, name='run_benchmark'),
+    path('repo/benchmark/results/', get_benchmark_results, name='get_benchmark_results'),
+    path('repo/benchmark/clear/', clear_benchmark_results, name='clear_benchmark_results'),
+    path('repo/benchmark/demo/', create_demo_data, name='create_demo_data'),
     path('', include('car_templates.urls')),  # Include car_templates URLs
 ]
 

@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Car, Customer, Employee, Sale, DealerProfile, Transaction
+from .models import Car, Customer, Employee, Sale, DealerProfile, Transaction, BenchmarkResult
+
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
@@ -34,3 +35,13 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ('transaction_type', 'created_at')
     search_fields = ('dealer__username', 'description')
     readonly_fields = ('created_at',)
+
+
+@admin.register(BenchmarkResult)
+class BenchmarkResultAdmin(admin.ModelAdmin):
+    list_display = ('execution_type', 'num_workers', 'batch_size', 'num_queries', 'execution_time', 'cpu_usage', 'memory_usage', 'timestamp')
+    list_filter = ('execution_type', 'num_workers', 'timestamp')
+    readonly_fields = ('timestamp',)
+    ordering = ('-timestamp',)
+
+

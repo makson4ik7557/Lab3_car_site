@@ -142,7 +142,16 @@ def bokeh_dashboard(request):
 
     if not df_brands.empty:
         df_brands['angle'] = df_brands['total_revenue'] / df_brands['total_revenue'].sum() * 2 * pi
-        df_brands['color'] = Category20c[len(df_brands)] if len(df_brands) <= 20 else Viridis256[:len(df_brands)]
+
+        # Вибираємо палітру залежно від кількості елементів
+        num_brands = len(df_brands)
+        if num_brands <= 2:
+            df_brands['color'] = ['#3b82f6', '#ef4444'][:num_brands]
+        elif num_brands <= 20:
+            df_brands['color'] = Category20c[max(3, num_brands)][:num_brands]
+        else:
+            df_brands['color'] = Viridis256[:num_brands]
+
         df_brands['percentage'] = (df_brands['total_revenue'] / df_brands['total_revenue'].sum() * 100).round(1)
 
         source = ColumnDataSource(df_brands)

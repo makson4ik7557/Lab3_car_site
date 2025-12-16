@@ -4,7 +4,10 @@
 
 {% block content %}
 <h1>Analytics Dashboard (Plotly v1)</h1>
-<p><a href="{% url 'bokeh_dashboard' %}">Bokeh Dashboard (v2) →</a></p>
+<p>
+    <a href="{% url 'bokeh_dashboard' %}">Bokeh Dashboard (v2) →</a> |
+    <a href="{% url 'benchmark_dashboard' %}">Performance Benchmarks →</a>
+</p>
 
 <h2>Фільтри</h2>
 <form method="get" action="{% url 'plotly_dashboard' %}">

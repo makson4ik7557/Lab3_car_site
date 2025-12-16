@@ -691,3 +691,92 @@ class AnalyticsViewSet(viewsets.ViewSet):
             })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from .models import BenchmarkResult
+import json
+
+
+def benchmark_dashboard(request):
+    return render(request, 'repo_practice/benchmark_dashboard.html')
+
+
+@require_http_methods(["POST"])
+def run_benchmark(request):
+    try:
+        data = json.loads(request.body)
+        execution_type = data.get('execution_type', 'threading')
+        num_workers = int(data.get('num_workers', 4))
+        num_queries = int(data.get('num_queries', 100))
+        batch_size = int(data.get('batch_size', 10))
+
+        from repo_practice.benchmarks.run_benchmarks import run_experiment
+
+        benchmark = run_experiment(
+            execution_type=execution_type,
+            num_workers=num_workers,
+            num_queries=num_queries,
+            batch_size=batch_size
+        )
+
+        return JsonResponse({
+            'success': True,
+            'benchmark_id': benchmark.id,
+            'execution_time': benchmark.execution_time,
+            'cpu_usage': benchmark.cpu_usage,
+            'memory_usage': benchmark.memory_usage
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["GET"])
+def get_benchmark_results(request):
+    execution_type = request.GET.get('execution_type', None)
+
+    queryset = BenchmarkResult.objects.all()
+    if execution_type:
+        queryset = queryset.filter(execution_type=execution_type)
+
+    results = list(queryset.values(
+        'id', 'execution_type', 'num_workers', 'batch_size',
+        'num_queries', 'execution_time', 'cpu_usage', 'memory_usage', 'timestamp'
+    ))
+
+    return JsonResponse({'results': results})
+
+
+@require_http_methods(["DELETE"])
+def clear_benchmark_results(request):
+    count = BenchmarkResult.objects.all().delete()[0]
+    return JsonResponse({'success': True, 'deleted_count': count})
+
+
+@require_http_methods(["POST"])
+def create_demo_data(request):
+    try:
+        from repo_practice.benchmarks.run_benchmarks import run_experiment
+
+        created = 0
+        for workers in [2, 4, 8]:
+            for exec_type in ['threading']:
+                if BenchmarkResult.objects.filter(
+                    execution_type=exec_type,
+                    num_workers=workers
+                ).count() == 0:
+                    run_experiment(
+                        execution_type=exec_type,
+                        num_workers=workers,
+                        num_queries=30,
+                        batch_size=10
+                    )
+                    created += 1
+
+        return JsonResponse({'success': True, 'created_count': created})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
