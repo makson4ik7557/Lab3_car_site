@@ -257,3 +257,49 @@ class AnalyticsRepository:
             .order_by('make', '-in_stock')
         )
 
+    def get_car_statistics_by_brand(self) -> List[Dict[str, Any]]:
+        """
+        Статистика автомобілів по брендам (для бенчмарків)
+
+        Використовує:
+        - Сутність: Car
+        - GROUP BY: make
+        - Агрегації: COUNT, AVG
+        - ORDER BY: total DESC
+
+        Returns:
+            List of dicts with car statistics by brand
+        """
+        return list(
+            Car.objects
+            .values('make')
+            .annotate(
+                total=Count('id'),
+                avg_price=Avg('price')
+            )
+            .order_by('-total')
+        )
+
+    def get_transaction_summary_by_type(self) -> List[Dict[str, Any]]:
+        """
+        Сумарна інформація про транзакції по типах (для бенчмарків)
+
+        Використовує:
+        - Сутність: Transaction
+        - GROUP BY: transaction_type
+        - Агрегації: COUNT, SUM
+        - ORDER BY: transaction_type
+
+        Returns:
+            List of dicts with transaction summary by type
+        """
+        return list(
+            Transaction.objects
+            .values('transaction_type')
+            .annotate(
+                total=Count('id'),
+                sum_amount=Sum('amount')
+            )
+            .order_by('transaction_type')
+        )
+

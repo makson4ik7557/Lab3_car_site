@@ -64,3 +64,24 @@ class CarRepository(BaseRepository[Car]):
 
     def get_cheapest(self) -> Optional[Car]:
         return Car.objects.order_by('price').first()
+
+    def get_all_cars(self) -> List[Car]:
+        """Отримати всі автомобілі (alias для get_all для кращої читабельності)"""
+        return self.get_all()
+
+    def get_cars_by_filters(self, min_price: Optional[int] = None, min_year: Optional[int] = None) -> List[Car]:
+        """Отримати автомобілі з фільтрами по ціні та року"""
+        from django.db.models import Q
+        queryset = Car.objects.all()
+
+        filters = Q()
+        if min_price is not None:
+            filters |= Q(price__gte=min_price)
+        if min_year is not None:
+            filters |= Q(year__gte=min_year)
+
+        if filters:
+            queryset = queryset.filter(filters)
+
+        return list(queryset)
+

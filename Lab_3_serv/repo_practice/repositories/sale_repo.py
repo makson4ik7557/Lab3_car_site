@@ -64,3 +64,11 @@ class SaleRepository(BaseRepository[Sale]):
             )
             .order_by('-total_sales')
         )
+
+    def get_all_sales_with_details(self) -> List[Sale]:
+        """Отримати всі продажі з повною інформацією (JOIN з car, customer, employee)"""
+        return self.get_all()
+
+    def get_sales_above_price(self, min_price: float) -> List[Sale]:
+        """Отримати продажі з ціною вище заданої"""
+        return list(Sale.objects.select_related('car', 'customer', 'employee').filter(sale_price__gte=min_price))
