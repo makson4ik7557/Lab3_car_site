@@ -6,8 +6,8 @@ from repo_practice.views import (
     DealerProfileViewSet, TransactionViewSet, DealerViewSet, AnalyticsViewSet,
     benchmark_dashboard, run_benchmark, get_benchmark_results, clear_benchmark_results, create_demo_data
 )
-from repo_practice import dashboard_views
-from repo_practice import bokeh_dashboard_views
+from analytics import dashboard_views
+from analytics import bokeh_dashboard_views
 
 # REST API Router
 # АРХІТЕКТУРА: Database → Repository → API → UI
