@@ -1,301 +1,304 @@
 """
-Скрипт для заповнення БД великою кількістю тестових даних (200-500 записів)
+Скрипт для створення великого набору даних (500+ машин)
+Запуск: python populate_large_dataset.py
 """
 import os
 import django
-import random
-from datetime import datetime, timedelta
-from decimal import Decimal
+import sys
 
+# Налаштовуємо Django
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Lab_3_serv.settings')
 django.setup()
 
-from repo_practice.models import Car, Customer, Employee, Sale, User, DealerProfile, Transaction
-from django.contrib.auth.hashers import make_password
+from repo_practice.models import Car, Customer, Employee, Sale, DealerProfile, Transaction
+from django.contrib.auth.models import User
+from decimal import Decimal
+import random
+from datetime import datetime, timedelta
 
-# Дані для генерації
-CAR_MAKES = {
-    'BMW': ['M5 Competition', 'X7 M60i', '3 Series 330i', 'iX xDrive50', '5 Series', 'X5', 'M3', 'M4', 'X3', '7 Series'],
-    'Mercedes-Benz': ['AMG GT', 'S-Class', 'E-Class', 'GLE', 'GLC', 'A-Class', 'C-Class', 'G-Class', 'CLS', 'GLA'],
-    'Audi': ['RS6', 'Q7', 'A6', 'Q5', 'A4', 'A8', 'Q8', 'e-tron', 'A3', 'RS5'],
-    'Porsche': ['911 Turbo S', 'Cayenne Turbo', 'Taycan 4S', 'Macan GTS', 'Panamera', '718 Cayman', 'Boxster', '911 Carrera', 'Cayenne', 'Macan'],
-    'Tesla': ['Model S Plaid', 'Model X', 'Model 3', 'Model Y', 'Cybertruck'],
-    'Lexus': ['LS 500', 'RX 350', 'ES 300h', 'NX', 'LC 500', 'GX', 'IS', 'UX'],
-    'Volvo': ['XC90', 'S90', 'XC60', 'V90', 'XC40', 'S60'],
-    'Jaguar': ['F-Type', 'XF', 'XE', 'F-PACE', 'E-PACE', 'I-PACE'],
-    'Land Rover': ['Range Rover', 'Defender', 'Discovery', 'Range Rover Sport', 'Evoque'],
-    'Maserati': ['Quattroporte', 'Levante', 'Ghibli', 'MC20', 'GranTurismo']
-}
 
-FIRST_NAMES = [
-    'Олександр', 'Андрій', 'Максим', 'Дмитро', 'Іван', 'Микола', 'Віктор', 'Сергій', 'Володимир', 'Олег',
-    'Марія', 'Наталія', 'Олена', 'Ірина', 'Анна', 'Тетяна', 'Юлія', 'Світлана', 'Катерина', 'Вікторія',
-    'Богдан', 'Ярослав', 'Артем', 'Денис', 'Роман', 'Євген', 'Павло', 'Петро', 'Василь', 'Михайло'
-]
+def clear_database():
+    """
+    Очищає базу даних перед створенням нових даних
+    """
+    print("\n🗑️  Очищення бази даних...")
 
-LAST_NAMES = [
-    'Петренко', 'Коваленко', 'Шевченко', 'Бойко', 'Коваль', 'Мельник', 'Гончар', 'Кравченко', 'Ткаченко', 'Поліщук',
-    'Мороз', 'Савченко', 'Левченко', 'Павленко', 'Сидоренко', 'Захарченко', 'Григоренко', 'Іваненко', 'Марченко', 'Яковенко',
-    'Зайцев', 'Білий', 'Руденко', 'Кравець', 'Козлов', 'Гриценко', 'Романенко', 'Литвиненко', 'Данченко', 'Федоренко'
-]
+    # Видаляємо в правильному порядку (з урахуванням foreign keys)
+    Transaction.objects.all().delete()
+    print("   ✓ Транзакції видалено")
 
-POSITIONS = [
-    'Менеджер з продажу',
-    'Старший консультант',
-    'Консультант з продажу',
-    'Керівник відділу продажів',
-    'Спеціаліст з обслуговування клієнтів',
-    'Фінансовий консультант',
-    'Головний менеджер',
-    'Регіональний менеджер'
-]
-
-def clear_existing_data():
-    """Очищення існуючих даних (опціонально)"""
-    print("\nОчищення старих даних...")
     Sale.objects.all().delete()
-    Transaction.objects.filter(dealer__username__startswith='dealer_').delete()
-    Car.objects.all().delete()
-    Customer.objects.all().delete()
+    print("   ✓ Продажі видалено")
+
+    DealerProfile.objects.all().delete()
+    print("   ✓ Профілі дилерів видалено")
+
+    # Видаляємо користувачів-дилерів (окрім суперюзерів)
+    User.objects.filter(dealer_profile__isnull=True, is_superuser=False).delete()
+    print("   ✓ Користувачі-дилери видалено")
+
     Employee.objects.all().delete()
-    DealerProfile.objects.filter(user__username__startswith='dealer_').delete()
-    User.objects.filter(username__startswith='dealer_').delete()
-    print("Старі дані очищено")
+    print("   ✓ Співробітники видалено")
 
-def create_cars(count=300):
-    """Створює автомобілі"""
-    print(f"\nСтворення {count} автомобілів...")
+    Customer.objects.all().delete()
+    print("   ✓ Клієнти видалено")
+
+    Car.objects.all().delete()
+    print("   ✓ Автомобілі видалено")
+
+    print("✅ База даних очищена!\n")
+
+
+def create_large_dataset():
+    """
+    Створює великий набір даних для тестування графіків:
+    - 500+ різних автомобілів
+    - 200 клієнтів
+    - 50 співробітників
+    - 1000+ продажів
+    - 20 дилерів
+    - 500+ транзакцій
+    """
+    print("=" * 60)
+    print("СТВОРЕННЯ ВЕЛИКОГО НАБОРУ ДАНИХ")
+    print("=" * 60)
+
+    # Очищаємо базу даних перед створенням нових даних
+    clear_database()
+
+    # === 1. СТВОРЕННЯ 500+ АВТОМОБІЛІВ ===
+    print("\n📦 Створення автомобілів...")
+
+    makes = [
+        'Toyota', 'Honda', 'BMW', 'Mercedes-Benz', 'Audi', 'Ford',
+        'Chevrolet', 'Nissan', 'Hyundai', 'Kia', 'Mazda', 'Volkswagen',
+        'Porsche', 'Tesla', 'Lexus', 'Subaru', 'Volvo', 'Jaguar',
+        'Land Rover', 'Infiniti', 'Acura', 'Cadillac', 'Lincoln'
+    ]
+
+    models = [
+        'Sedan', 'SUV', 'Truck', 'Coupe', 'Hatchback', 'Convertible',
+        'Van', 'Wagon', 'Crossover', 'Sport', 'Luxury', 'Electric',
+        'Hybrid', 'Compact', 'Midsize', 'Fullsize'
+    ]
+
     cars = []
-
-    for i in range(count):
-        make = random.choice(list(CAR_MAKES.keys()))
-        model = random.choice(CAR_MAKES[make])
-        year = random.randint(2018, 2024)
-
-        # Ціна залежить від марки та року
-        base_prices = {
-            'BMW': (45000, 150000),
-            'Mercedes-Benz': (50000, 180000),
-            'Audi': (40000, 140000),
-            'Porsche': (70000, 250000),
-            'Tesla': (45000, 130000),
-            'Lexus': (45000, 100000),
-            'Volvo': (40000, 80000),
-            'Jaguar': (50000, 120000),
-            'Land Rover': (60000, 150000),
-            'Maserati': (80000, 200000)
-        }
-
-        min_price, max_price = base_prices[make]
-        price = Decimal(random.randint(min_price, max_price))
-
-        # 70% в stock, 30% продані
-        in_stock = random.random() < 0.7
+    for i in range(550):  # 550 машин
+        make = random.choice(makes)
+        model = random.choice(models)
+        year = random.randint(2010, 2025)
+        # Різні цінові категорії
+        if make in ['BMW', 'Mercedes-Benz', 'Audi', 'Porsche', 'Tesla', 'Lexus']:
+            price = Decimal(random.randint(40000, 120000))
+        elif make in ['Toyota', 'Honda', 'Mazda', 'Hyundai', 'Kia']:
+            price = Decimal(random.randint(18000, 45000))
+        else:
+            price = Decimal(random.randint(25000, 75000))
 
         car = Car(
             make=make,
-            model=model,
+            model=f'{model} {i + 1}',
             year=year,
             price=price,
-            in_stock=in_stock
+            in_stock=random.choice([True, True, True, False])  # 75% в наявності
         )
         cars.append(car)
 
-    Car.objects.bulk_create(cars)
-    print(f"Створено {len(cars)} автомобілів")
-    return list(Car.objects.all())
+    Car.objects.bulk_create(cars, ignore_conflicts=True)
+    print(f"✅ Створено {len(cars)} автомобілів")
 
-def create_customers(count=150):
-    """Створює клієнтів"""
-    print(f"\n👥 Створення {count} клієнтів...")
+    # === 2. СТВОРЕННЯ 200 КЛІЄНТІВ ===
+    print("\n👥 Створення клієнтів...")
+
+    first_names = ['John', 'Mary', 'David', 'Sarah', 'Michael', 'Emma', 'Robert', 'Jessica',
+                   'William', 'Lisa', 'James', 'Ashley', 'Daniel', 'Emily', 'Matthew', 'Amanda']
+    last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+                  'Rodriguez', 'Martinez', 'Anderson', 'Taylor', 'Thomas', 'Lee', 'White']
+
     customers = []
-
-    for i in range(count):
-        first_name = random.choice(FIRST_NAMES)
-        last_name = random.choice(LAST_NAMES)
-        email = f"{first_name.lower()}.{last_name.lower()}{i}@example.com"
-        phone = f"+38067{random.randint(1000000, 9999999)}"
-
+    for i in range(200):
+        first_name = random.choice(first_names)
+        last_name = random.choice(last_names)
         customer = Customer(
             first_name=first_name,
             last_name=last_name,
-            email=email,
-            phone=phone
+            email=f'{first_name.lower()}.{last_name.lower()}{i}@example.com',
+            phone=f'+380{random.randint(100000000, 999999999)}'
         )
         customers.append(customer)
 
-    Customer.objects.bulk_create(customers)
-    print(f"Створено {len(customers)} клієнтів")
-    return list(Customer.objects.all())
+    Customer.objects.bulk_create(customers, ignore_conflicts=True)
+    print(f"✅ Створено {len(customers)} клієнтів")
 
-def create_employees(count=15):
-    """Створює співробітників"""
-    print(f"\nСтворення {count} співробітників...")
+    # === 3. СТВОРЕННЯ 50 СПІВРОБІТНИКІВ ===
+    print("\n💼 Створення співробітників...")
+
+    positions = ['Sales Manager', 'Senior Sales', 'Junior Sales', 'Sales Associate',
+                'Sales Director', 'Account Manager']
+
     employees = []
-
-    for i in range(count):
-        first_name = random.choice(FIRST_NAMES)
-        last_name = random.choice(LAST_NAMES)
-        position = random.choice(POSITIONS)
-        hire_date = datetime.now().date() - timedelta(days=random.randint(180, 1825))
-
+    for i in range(50):
+        first_name = random.choice(first_names)
+        last_name = random.choice(last_names)
         employee = Employee(
             first_name=first_name,
             last_name=last_name,
-            position=position,
-            hire_date=hire_date
+            position=random.choice(positions),
+            hire_date=datetime.now().date() - timedelta(days=random.randint(30, 3650))
         )
         employees.append(employee)
 
-    Employee.objects.bulk_create(employees)
-    print(f"Створено {len(employees)} співробітників")
-    return list(Employee.objects.all())
+    Employee.objects.bulk_create(employees, ignore_conflicts=True)
+    print(f"✅ Створено {len(employees)} співробітників")
 
-def create_dealers(count=5):
-    """Створює дилерів"""
-    print(f"\nСтворення {count} дилерів...")
-    dealers = []
+    # === 4. СТВОРЕННЯ 1000+ ПРОДАЖІВ ===
+    print("\n💰 Створення продажів...")
 
-    for i in range(1, count + 1):
-        username = f"dealer_{i}"
+    all_cars = list(Car.objects.all())
+    all_customers = list(Customer.objects.all())
+    all_employees = list(Employee.objects.all())
 
-        # Перевіряємо чи існує
-        if User.objects.filter(username=username).exists():
-            dealer = User.objects.get(username=username)
-        else:
-            dealer = User.objects.create(
-                username=username,
-                email=f"dealer{i}@example.com",
-                password=make_password('password123'),
-                is_staff=True
-            )
-
-        # Створюємо профіль якщо немає
-        if not hasattr(dealer, 'dealer_profile'):
-            DealerProfile.objects.create(
-                user=dealer,
-                balance=Decimal(random.randint(50000, 200000))
-            )
-
-        dealers.append(dealer)
-
-    print(f"Створено {len(dealers)} дилерів")
-    return dealers
-
-def create_sales(cars, customers, employees, count=200):
-    """Створює продажі"""
-    print(f"\nСтворення {count} продажів...")
-
-    # Беремо тільки продані авто
-    sold_cars = [car for car in cars if not car.in_stock]
-
-    if len(sold_cars) < count:
-        # Позначаємо додаткові авто як продані
-        additional_needed = count - len(sold_cars)
-        available_cars = [car for car in cars if car.in_stock][:additional_needed]
-
-        for car in available_cars:
-            car.in_stock = False
-
-        Car.objects.bulk_update(available_cars, ['in_stock'])
-        sold_cars.extend(available_cars)
+    if not all_cars or not all_customers or not all_employees:
+        print("❌ Помилка: немає даних для створення продажів")
+        return
 
     sales = []
-    for i in range(min(count, len(sold_cars))):
-        car = sold_cars[i]
-        customer = random.choice(customers)
-        employee = random.choice(employees)
+    for i in range(1200):  # 1200 продажів
+        car = random.choice(all_cars)
+        customer = random.choice(all_customers)
+        employee = random.choice(all_employees)
 
-        # Ціна продажу може трохи відрізнятись від базової
-        price_variation = Decimal(random.uniform(0.95, 1.05))
-        sale_price = car.price * price_variation
+        # Ціна продажу може бути трохи нижче base price
+        sale_price = car.price * Decimal(random.uniform(0.85, 0.98))
+        sale_date = datetime.now() - timedelta(days=random.randint(0, 730))  # 2 роки історії
 
         sale = Sale(
             car=car,
             customer=customer,
             employee=employee,
-            sale_price=sale_price
+            sale_price=sale_price,
+            sale_date=sale_date
         )
         sales.append(sale)
 
-    Sale.objects.bulk_create(sales)
-    print(f"Створено {len(sales)} продажів")
+    Sale.objects.bulk_create(sales, ignore_conflicts=True)
+    print(f"✅ Створено {len(sales)} продажів")
 
-def create_transactions(dealers, cars, count=300):
-    """Створює транзакції"""
-    print(f"\nСтворення {count} транзакцій...")
-    transactions = []
+    # === 5. СТВОРЕННЯ 20 ДИЛЕРІВ ===
+    print("\n🏢 Створення дилерів...")
 
-    for i in range(count):
-        dealer = random.choice(dealers)
-        profile = dealer.dealer_profile
+    dealer_names = [
+        'AutoMax', 'CarPro', 'EliteAutos', 'PrimeDrive', 'UrbanMotors',
+        'SpeedWay', 'LuxuryCars', 'CityAuto', 'MetroVehicles', 'TopGear',
+        'FastLane', 'DriveTime', 'AutoHub', 'CarZone', 'MotorCity',
+        'RoadKing', 'AutoPalace', 'CarEmpire', 'WheelDeal', 'AutoCraft'
+    ]
 
-        transaction_type = random.choice(['BUY', 'SELL', 'MODIFY'])
+    dealers = []
+    for name in dealer_names:
+        # Перевіряємо чи існує користувач
+        if not User.objects.filter(username=name.lower()).exists():
+            user = User.objects.create_user(
+                username=name.lower(),
+                email=f'{name.lower()}@dealer.com',
+                password='dealer123',
+                first_name=name,
+                last_name='Dealer'
+            )
 
-        if transaction_type == 'BUY':
-            car = random.choice([c for c in cars if c.in_stock])
-            amount = -car.price * Decimal(random.uniform(0.8, 0.9))  # Купівля зі знижкою
-            description = f"Купівля {car.make} {car.model}"
-        elif transaction_type == 'SELL':
-            car = random.choice([c for c in cars if not c.in_stock])
-            amount = car.price * Decimal(random.uniform(1.0, 1.15))  # Продаж з націнкою
-            description = f"Продаж {car.make} {car.model}"
-        else:  # MODIFY
-            car = random.choice(cars)
-            amount = Decimal(random.randint(500, 5000))
-            description = f"Модифікація {car.make} {car.model}"
+            # Створюємо профіль дилера
+            DealerProfile.objects.create(
+                user=user,  # ✅ Виправлено: user замість dealer
+                balance=Decimal(random.randint(10000, 500000))
+            )
+            dealers.append(user)
 
-        balance_before = profile.balance
-        balance_after = balance_before + amount
+    print(f"✅ Створено {len(dealers)} дилерів")
 
-        transaction = Transaction(
-            dealer=dealer,
-            car=car,
-            transaction_type=transaction_type,
-            amount=amount,
-            description=description,
-            balance_before=balance_before,
-            balance_after=balance_after
-        )
-        transactions.append(transaction)
+    # === 6. СТВОРЕННЯ 500+ ТРАНЗАКЦІЙ ===
+    print("\n💳 Створення транзакцій...")
 
-        # Оновлюємо баланс
-        profile.balance = balance_after
-        profile.save()
+    all_dealers = list(User.objects.filter(dealer_profile__isnull=False))
 
-    Transaction.objects.bulk_create(transactions)
-    print(f"Створено {len(transactions)} транзакцій")
+    if not all_dealers:
+        print("⚠️  Немає дилерів для створення транзакцій")
+    else:
+        transactions = []
+        transaction_types = ['BUY', 'SELL', 'MODIFY']
 
-def main():
-    print("ЗАПОВНЕННЯ БД ВЕЛИКОЮ КІЛЬКІСТЮ ДАНИХ")
+        for i in range(600):  # 600 транзакцій
+            dealer = random.choice(all_dealers)
+            trans_type = random.choice(transaction_types)
 
-    # Запитуємо чи очищати старі дані
-    response = input("\nОчистити існуючі дані? (y/n): ").lower()
-    if response == 'y':
-        clear_existing_data()
+            # Випадкова машина для транзакції
+            car = random.choice(all_cars) if trans_type in ['BUY', 'SELL'] else None
 
-    # Створюємо дані
-    print("\nПочаток генерації даних...")
+            if trans_type == 'BUY':
+                amount = Decimal(random.randint(20000, 100000))
+            elif trans_type == 'SELL':
+                amount = Decimal(random.randint(15000, 80000))
+            else:  # MODIFY
+                amount = Decimal(random.randint(5000, 50000))
 
-    cars = create_cars(300)
-    customers = create_customers(150)
-    employees = create_employees(15)
-    dealers = create_dealers(5)
+            # Зберігаємо баланс до транзакції
+            balance_before = dealer.dealer_profile.balance
 
-    create_sales(cars, customers, employees, 200)
-    create_transactions(dealers, cars, 300)
+            # Оновлюємо баланс
+            if trans_type == 'SELL':
+                dealer.dealer_profile.balance += amount
+            else:
+                dealer.dealer_profile.balance -= amount
 
-    print("ЗАПОВНЕННЯ ЗАВЕРШЕНО")
+            balance_after = dealer.dealer_profile.balance
 
-    # Статистика
-    print(f"\nПідсумкова статистика:")
-    print(f"Автомобілів: {Car.objects.count()}")
-    print(f"Клієнтів: {Customer.objects.count()}")
-    print(f"Співробітників: {Employee.objects.count()}")
-    print(f"Дилерів: {User.objects.filter(username__startswith='dealer_').count()}")
-    print(f"Продажів: {Sale.objects.count()}")
-    print(f"Транзакцій: {Transaction.objects.count()}")
+            transaction = Transaction(
+                dealer=dealer,
+                car=car,  # ✅ Додано машину
+                transaction_type=trans_type,
+                amount=amount,
+                balance_before=balance_before,  # ✅ Додано balance_before
+                balance_after=balance_after,
+                description=f'{trans_type} transaction #{i+1}'  # Опис
+                # created_at буде автоматично встановлено Django (auto_now_add=True)
+            )
+            transactions.append(transaction)
+
+        Transaction.objects.bulk_create(transactions, ignore_conflicts=True)
+
+        # Зберігаємо оновлені баланси
+        for dealer in all_dealers:
+            dealer.dealer_profile.save()
+
+        print(f"✅ Створено {len(transactions)} транзакцій")
+
+    # === ПІДСУМОК ===
+    print("\n" + "=" * 60)
+    print("✅ ЗАВЕРШЕНО! ПІДСУМОК:")
+    print("=" * 60)
+    print(f"📦 Автомобілів:    {Car.objects.count()}")
+    print(f"👥 Клієнтів:       {Customer.objects.count()}")
+    print(f"💼 Співробітників: {Employee.objects.count()}")
+    print(f"💰 Продажів:       {Sale.objects.count()}")
+    print(f"🏢 Дилерів:        {User.objects.filter(dealer_profile__isnull=False).count()}")
+    print(f"💳 Транзакцій:     {Transaction.objects.count()}")
+    print("=" * 60)
+
+    # Статистика по марках
+    print("\n📊 Топ-10 марок автомобілів:")
+    from django.db.models import Count
+    top_makes = Car.objects.values('make').annotate(count=Count('id')).order_by('-count')[:10]
+    for item in top_makes:
+        print(f"   {item['make']}: {item['count']} авто")
+
+    print("\n🎉 Дані готові для тестування графіків!")
+
 
 if __name__ == '__main__':
-    main()
+    try:
+        create_large_dataset()
+    except Exception as e:
+        print(f"\n❌ Помилка: {e}")
+        import traceback
+        traceback.print_exc()
 

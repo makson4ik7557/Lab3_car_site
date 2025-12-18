@@ -444,15 +444,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
                     'records_count': 0
                 })
 
-            # Pandas аналіз: обчислюємо статистичні показники
-            stats = {
-                'mean_revenue': float(df['total_revenue'].mean()),
-                'median_revenue': float(df['total_revenue'].median()),
-                'min_revenue': float(df['total_revenue'].min()),
-                'max_revenue': float(df['total_revenue'].max()),
-                'mean_sales_count': float(df['total_sales'].mean()),
-                'total_employees': len(df)
-            }
+            # Статистика з Service
+            stats = self.analytics_service.get_sales_statistics(min_sales_count)
 
             return Response({
                 'query_info': {
@@ -478,21 +471,14 @@ class AnalyticsViewSet(viewsets.ViewSet):
         min_cars_sold = int(request.query_params.get('min_cars', 1))
 
         try:
-            data = self.repo.analytics.get_profit_by_car_brand(min_cars_sold)
-            df = pd.DataFrame(data)
+            # DataFrame з Service
+            df = self.analytics_service.get_profit_by_brand_df(min_cars_sold)
 
             if df.empty:
                 return Response({'message': 'No data available', 'records_count': 0})
 
-            # Pandas статистика
-            stats = {
-                'mean_revenue_per_brand': float(df['total_revenue'].mean()),
-                'median_revenue_per_brand': float(df['total_revenue'].median()),
-                'highest_revenue_brand': df.loc[df['total_revenue'].idxmax()]['car__make'],
-                'lowest_revenue_brand': df.loc[df['total_revenue'].idxmin()]['car__make'],
-                'total_brands': len(df),
-                'total_revenue_all_brands': float(df['total_revenue'].sum())
-            }
+            # Статистика з Service
+            stats = self.analytics_service.get_profit_statistics(min_cars_sold)
 
             return Response({
                 'query_info': {
@@ -549,7 +535,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 },
                 'records_count': len(df),
                 'statistics': stats,
-                'by_transaction_type': type_stats,
+                'by_transaction_type': stats.get('by_type', {}),
                 'data': df.to_dict(orient='records')
             })
         except Exception as e:
@@ -654,29 +640,17 @@ class AnalyticsViewSet(viewsets.ViewSet):
         min_transactions = int(request.query_params.get('min_transactions', 1))
 
         try:
-            data = self.repo.analytics.get_dealer_balance_summary(min_transactions)
-            df = pd.DataFrame(data)
+            # DataFrame з Service (Decimal вже конвертовано, fillna виконано)
+            df = self.analytics_service.get_dealer_balance_summary_df(min_transactions)
 
             if df.empty:
                 return Response({'message': 'No data available', 'records_count': 0})
 
-            # Конвертуємо Decimal в float
-            for col in ['current_balance', 'total_buy_amount', 'total_sell_amount', 'average_transaction']:
-                if col in df.columns:
-                    df[col] = df[col].fillna(0).astype(float)
-
-            # Pandas статистика
-            stats = {
-                'mean_balance': float(df['current_balance'].mean()),
-                'median_balance': float(df['current_balance'].median()),
-                'min_balance': float(df['current_balance'].min()),
-                'max_balance': float(df['current_balance'].max()),
-                'total_dealers': len(df),
-                'total_transactions': int(df['total_transactions'].sum()),
-                'total_buy_operations': int(df['buy_transactions'].sum()),
-                'total_sell_operations': int(df['sell_transactions'].sum()),
-                'total_modify_operations': int(df['modify_transactions'].sum())
-            }
+            # Статистика з Service + додаткові метрики
+            stats = self.analytics_service.get_dealer_balance_statistics(min_transactions)
+            stats['min_balance'] = float(df['current_balance'].min())
+            stats['max_balance'] = float(df['current_balance'].max())
+            stats['total_modify_operations'] = int(df['modify_transactions'].sum())
 
             return Response({
                 'query_info': {
